@@ -17,8 +17,6 @@ const tokenOutputSchema = z.object({
 const balanceOutputSchema = z.object({
   currency: z.enum(SUPPORTED_CURRENCIES).describe("The currency used for the portfolio and token value"),
   portfolio_value: z.string().describe("The total value (ada + tokens) of the wallet in the specified currency"),
-  ada_balance: z.string().describe("The balance of ADA in the wallet"),
-  staking_rewards: z.string().describe("The balance of staking rewards in the wallet"),
   tokens: z.array(tokenOutputSchema).describe("The tokens associated with the wallet"),
   handles: z.array(z.string()).describe("The ADA handles associated with the wallet"),
 });
@@ -80,33 +78,34 @@ export function registerGetWalletBalance(server: McpServer): void {
         const adaBalance = lovelaceToAda(walletData.lovelace);
         const stakingRewards = lovelaceToAda(walletData.rewards_lovelace);
 
-        const tokens: TokenOutput[] = walletData.tokens.map((token) => {
-          const decimalsAdjustedAmount = formatTokenAmount(token.quantity, token.decimals);
-          const adaPerAdjustedUnit = token.ada_per_adjusted_unit ? parseFloat(token.ada_per_adjusted_unit) : null;
-          const adaWorth = adaPerAdjustedUnit ? parseFloat(decimalsAdjustedAmount) * adaPerAdjustedUnit : null;
-          const currencyWorth = adaWorth ? adaWorth * fiatSpotPrice : null;
-          const tokenOutput: TokenOutput = {
-            name: token.name || token.hex_asset_name,
-            ticker: token.ticker,
-            amount: decimalsAdjustedAmount,
-            value: currencyWorth ? currencyWorth.toFixed(2) : null,
-          };
+        const tokens: TokenOutput[] = [
+          {
+            name: "Cardano",
+            ticker: "ADA",
+            amount: adaBalance,
+            value: (parseFloat(adaBalance) * fiatSpotPrice).toFixed(2),
+          },
+          ...walletData.tokens.map((token) => {
+            const decimalsAdjustedAmount = formatTokenAmount(token.quantity, token.decimals);
+            const adaPerAdjustedUnit = token.ada_per_adjusted_unit ? parseFloat(token.ada_per_adjusted_unit) : null;
+            const adaWorth = adaPerAdjustedUnit ? parseFloat(decimalsAdjustedAmount) * adaPerAdjustedUnit : null;
+            const currencyWorth = adaWorth ? adaWorth * fiatSpotPrice : null;
+            const tokenOutput: TokenOutput = {
+              name: token.name || token.hex_asset_name,
+              ticker: token.ticker,
+              amount: decimalsAdjustedAmount,
+              value: currencyWorth ? currencyWorth.toFixed(2) : null,
+            };
 
-          return tokenOutput;
-        });
+            return tokenOutput;
+          }),
+        ];
 
-        const adaBalanceValue = parseFloat(adaBalance) * fiatSpotPrice;
-
-        const portfolioValue = tokens.reduce(
-          (acc, token) => acc + (token.value ? parseFloat(token.value) : 0),
-          adaBalanceValue,
-        );
+        const portfolioValue = tokens.reduce((acc, token) => acc + (token.value ? parseFloat(token.value) : 0), 0);
 
         const output: BalanceOutput = {
           currency,
           portfolio_value: portfolioValue.toFixed(2),
-          ada_balance: adaBalance,
-          staking_rewards: stakingRewards,
           tokens,
           handles: walletData.handles,
         };
