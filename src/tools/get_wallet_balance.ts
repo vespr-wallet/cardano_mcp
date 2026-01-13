@@ -1,44 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { fetchWalletDetailed, VesprApiError } from "../api/client.js";
+import { VesprApiError } from "../types/errors.js";
+import VesprApiClient from "../api/VesprApiClient.js";
+import { lovelaceToAda, formatTokenAmount } from "../utils/cardano.js";
+import { formatWithCommas } from "../utils/formatting.js";
 import { isValidCardanoAddress } from "../utils/validation.js";
-
-/**
- * Format a number string with commas for readability
- * e.g., "1234567.890000" -> "1,234,567.890000"
- */
-function formatWithCommas(value: string): string {
-  const [whole, decimal] = value.split(".");
-  const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return decimal ? `${formattedWhole}.${decimal}` : formattedWhole;
-}
-
-/**
- * Convert lovelace (bigint string) to ADA string with 6 decimal places
- * 1 ADA = 1,000,000 lovelace
- */
-function lovelaceToAda(lovelace: string): string {
-  const value = BigInt(lovelace);
-  const ada = value / BigInt(1_000_000);
-  const remainder = value % BigInt(1_000_000);
-  const decimals = remainder.toString().padStart(6, "0");
-  return `${ada}.${decimals}`;
-}
-
-/**
- * Format token amount based on decimals
- */
-function formatTokenAmount(quantity: string, decimals: number): string {
-  if (decimals === 0) {
-    return quantity;
-  }
-  const value = BigInt(quantity);
-  const divisor = BigInt(10 ** decimals);
-  const whole = value / divisor;
-  const remainder = value % divisor;
-  const decimalPart = remainder.toString().padStart(decimals, "0");
-  return `${whole}.${decimalPart}`;
-}
 
 export function registerGetWalletBalance(server: McpServer): void {
   server.registerTool(
@@ -77,7 +43,7 @@ export function registerGetWalletBalance(server: McpServer): void {
       }
 
       try {
-        const walletData = await fetchWalletDetailed(address);
+        const walletData = await VesprApiClient.fetchWalletDetailed(address);
 
         // Transform response to match our output schema
         const adaBalance = lovelaceToAda(walletData.lovelace);
