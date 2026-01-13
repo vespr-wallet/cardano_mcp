@@ -1,15 +1,15 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
-import { fetchWalletDetailed, VesprApiError } from '../api/client.js';
-import { isValidCardanoAddress } from '../utils/validation.js';
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+import { fetchWalletDetailed, VesprApiError } from "../api/client.js";
+import { isValidCardanoAddress } from "../utils/validation.js";
 
 /**
  * Format a number string with commas for readability
  * e.g., "1234567.890000" -> "1,234,567.890000"
  */
 function formatWithCommas(value: string): string {
-  const [whole, decimal] = value.split('.');
-  const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const [whole, decimal] = value.split(".");
+  const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return decimal ? `${formattedWhole}.${decimal}` : formattedWhole;
 }
 
@@ -21,7 +21,7 @@ function lovelaceToAda(lovelace: string): string {
   const value = BigInt(lovelace);
   const ada = value / BigInt(1_000_000);
   const remainder = value % BigInt(1_000_000);
-  const decimals = remainder.toString().padStart(6, '0');
+  const decimals = remainder.toString().padStart(6, "0");
   return `${ada}.${decimals}`;
 }
 
@@ -36,27 +36,29 @@ function formatTokenAmount(quantity: string, decimals: number): string {
   const divisor = BigInt(10 ** decimals);
   const whole = value / divisor;
   const remainder = value % divisor;
-  const decimalPart = remainder.toString().padStart(decimals, '0');
+  const decimalPart = remainder.toString().padStart(decimals, "0");
   return `${whole}.${decimalPart}`;
 }
 
 export function registerGetWalletBalance(server: McpServer): void {
   server.registerTool(
-    'get_wallet_balance',
+    "get_wallet_balance",
     {
-      title: 'Get Wallet Balance',
-      description: 'Query Cardano wallet balance including ADA and native tokens',
+      title: "Get Wallet Balance",
+      description: "Query Cardano wallet balance including ADA and native tokens",
       inputSchema: {
-        address: z.string().describe('Cardano wallet address (bech32 format, addr1...)'),
+        address: z.string().describe("Cardano wallet address (bech32 format, addr1...)"),
       },
       outputSchema: {
         ada_balance: z.string(),
         staking_rewards: z.string(),
-        tokens: z.array(z.object({
-          name: z.string(),
-          ticker: z.string().nullable(),
-          amount: z.string(),
-        })),
+        tokens: z.array(
+          z.object({
+            name: z.string(),
+            ticker: z.string().nullable(),
+            amount: z.string(),
+          }),
+        ),
         handles: z.array(z.string()),
       },
     },
@@ -64,10 +66,12 @@ export function registerGetWalletBalance(server: McpServer): void {
       // Validate address format before making API call
       if (!isValidCardanoAddress(address)) {
         return {
-          content: [{
-            type: 'text' as const,
-            text: "Error: Invalid Cardano address. Address should start with 'addr1' (mainnet) or 'addr_test1' (testnet).",
-          }],
+          content: [
+            {
+              type: "text" as const,
+              text: "Error: Invalid Cardano address. Address should start with 'addr1' (mainnet) or 'addr_test1' (testnet).",
+            },
+          ],
           isError: true,
         };
       }
@@ -101,38 +105,44 @@ export function registerGetWalletBalance(server: McpServer): void {
         const textSummary = [
           `ADA Balance: ${formattedAda} ADA`,
           `Staking Rewards: ${formattedRewards} ADA`,
-          `Tokens: ${tokenCount} token${tokenCount !== 1 ? 's' : ''}`,
-          `Handles: ${handleCount > 0 ? walletData.handles.join(', ') : 'none'}`,
-        ].join('\n');
+          `Tokens: ${tokenCount} token${tokenCount !== 1 ? "s" : ""}`,
+          `Handles: ${handleCount > 0 ? walletData.handles.join(", ") : "none"}`,
+        ].join("\n");
 
         return {
-          content: [{
-            type: 'text' as const,
-            text: textSummary + '\n\n' + JSON.stringify(output, null, 2),
-          }],
+          content: [
+            {
+              type: "text" as const,
+              text: textSummary + "\n\n" + JSON.stringify(output, null, 2),
+            },
+          ],
           structuredContent: output,
         };
       } catch (error) {
         // Handle VesprApiError with user-friendly message
         if (error instanceof VesprApiError) {
           return {
-            content: [{
-              type: 'text' as const,
-              text: `Error: ${error.message}`,
-            }],
+            content: [
+              {
+                type: "text" as const,
+                text: `Error: ${error.message}`,
+              },
+            ],
             isError: true,
           };
         }
 
         // Handle unexpected errors
         return {
-          content: [{
-            type: 'text' as const,
-            text: `Error: An unexpected error occurred. ${error instanceof Error ? error.message : 'Unknown error'}`,
-          }],
+          content: [
+            {
+              type: "text" as const,
+              text: `Error: An unexpected error occurred. ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
           isError: true,
         };
       }
-    }
+    },
   );
 }

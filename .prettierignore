@@ -1,0 +1,7 @@
+dist/
+*.md
+external_api_spec/*
+long_cache/
+ignore.js
+.claude/
+yaak/

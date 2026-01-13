@@ -3,7 +3,10 @@
  */
 export const config = {
   /** VESPR API base URL */
-  apiBaseUrl: process.env.VESPR_API_URL ?? 'https://api.vespr.xyz',
+  apiBaseUrl: process.env.VESPR_API_URL ?? "https://api.vespr.xyz",
+
+  /** VESPR API Key */
+  apiKey: process.env.VESPR_API_KEY!,
 
   /** Request timeout in milliseconds */
   requestTimeoutMs: Number(process.env.REQUEST_TIMEOUT_MS) || 30000,
