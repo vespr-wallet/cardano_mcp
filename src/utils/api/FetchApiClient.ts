@@ -10,22 +10,40 @@ export interface FetchApiClientConfig {
   retryBaseDelayMs: number;
 }
 
-export interface PostRequest<T> {
+interface BaseRequest<T> {
   path: string;
-  body: unknown;
   schema: z.ZodType<T>;
   context: string;
+}
+
+export interface GetRequest<T> extends BaseRequest<T> {}
+
+export interface PostRequest<T> extends BaseRequest<T> {
+  body: unknown;
+}
+
+interface InternalRequest<T> extends BaseRequest<T> {
+  method: "GET" | "POST";
+  body?: unknown;
 }
 
 export class FetchApiClient {
   constructor(private readonly config: FetchApiClientConfig) {}
 
+  async get<T>(request: GetRequest<T>): Promise<T> {
+    return this.request({ ...request, method: "GET" });
+  }
+
   async post<T>(request: PostRequest<T>): Promise<T> {
+    return this.request({ ...request, method: "POST" });
+  }
+
+  private async request<T>(request: InternalRequest<T>): Promise<T> {
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
       try {
-        return await this.postOnce(request);
+        return await this.requestOnce(request);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -49,26 +67,25 @@ export class FetchApiClient {
     throw lastError;
   }
 
-  private async postOnce<T>(request: PostRequest<T>): Promise<T> {
+  private async requestOnce<T>(request: InternalRequest<T>): Promise<T> {
     const url = `${this.config.baseUrl}${request.path}`;
     const start = Date.now();
 
-    logger.info("api_request", { context: request.context, path: request.path });
+    logger.info("api_request", { method: request.method, context: request.context, path: request.path });
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.requestTimeoutMs);
 
+    const fetchOptions: RequestInit = {
+      method: request.method,
+      signal: controller.signal,
+      headers: this.config.headers,
+      body: request.method === "POST" && request.body ? JSON.stringify(request.body) : undefined,
+    };
+
     let response: Response;
     try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...this.config.headers,
-        },
-        body: JSON.stringify(request.body),
-        signal: controller.signal,
-      });
+      response = await fetch(url, fetchOptions);
     } catch (error) {
       clearTimeout(timeoutId);
       throw this.handleFetchError(error, request.context, start);

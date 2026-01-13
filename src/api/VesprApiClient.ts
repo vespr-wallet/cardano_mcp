@@ -8,7 +8,10 @@ export class VesprApiClient {
   constructor() {
     this.client = new FetchApiClient({
       baseUrl: config.apiBaseUrl,
-      headers: { "x-digest": config.apiKey },
+      headers: {
+        "Content-Type": "application/json",
+        "x-digest": config.apiKey,
+      },
       requestTimeoutMs: config.requestTimeoutMs,
       maxRetries: config.maxRetries,
       retryBaseDelayMs: config.retryBaseDelayMs,

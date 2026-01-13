@@ -11,7 +11,8 @@ export function registerGetWalletBalance(server: McpServer): void {
     "get_wallet_balance",
     {
       title: "Get Wallet Balance",
-      description: "Query Cardano wallet balance including ADA and native tokens",
+      description:
+        "Query Cardano wallet balance including ADA and native tokens. This will include the balance from all addresses associated with this wallet, not just the address provided.",
       inputSchema: {
         address: z.string().describe("Cardano wallet address (bech32 format, addr1...)"),
       },
@@ -35,7 +36,7 @@ export function registerGetWalletBalance(server: McpServer): void {
           content: [
             {
               type: "text" as const,
-              text: "Error: Invalid Cardano address. Address should start with 'addr1' (mainnet) or 'addr_test1' (testnet).",
+              text: "Error: Invalid Cardano address. Address should be a valid bech32 Shelley Era Wallet address.",
             },
           ],
           isError: true,
