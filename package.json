@@ -1,17 +1,20 @@
 {
-  "name": "@vespr/mcp-server",
+  "name": "@vespr/cardano-mcp",
   "version": "0.1.0",
-  "description": "MCP server for VESPR wallet integration",
+  "description": "MCP server for Cardano wallet operations via VESPR",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "vespr-mcp": "./dist/index.js"
+    "cardano-mcp": "./dist/index.js"
   },
   "engines": {
-    "node": "22.21.1",
-    "npm": "11.7.0"
+    "node": ">=18"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "npm run format:check && tsc",
     "start": "npm run build && node dist/index.js",
     "dev": "tsc --watch",

@@ -5,7 +5,7 @@ import { registerTools } from "./tools/index.js";
 import { logger } from "./utils/logger.js";
 
 const server = new McpServer({
-  name: "vespr-mcp-server",
+  name: "@vespr/cardano-mcp",
   version: "0.1.0",
 });
 
