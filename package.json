@@ -14,7 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "prepare": "npm run build",
+    "prepare": "tsc",
     "build": "npm run format:check && tsc",
     "start": "npm run build && node dist/index.js",
     "dev": "tsc --watch",
