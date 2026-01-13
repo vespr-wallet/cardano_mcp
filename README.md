@@ -35,7 +35,7 @@ Add the MCP server to your Claude Desktop configuration:
   "mcpServers": {
     "cardano": {
       "command": "npx",
-      "args": ["-y", "github:vespr-wallet/cardano-mcp"],
+      "args": ["-y", "github:vespr-wallet/cardano_mcp"],
       "env": {
         "VESPR_API_KEY": "your-api-key-here"
       }
@@ -103,8 +103,8 @@ Get the list of supported fiat and crypto currencies.
 
 ```bash
 # Clone the repository
-git clone https://github.com/vespr-wallet/cardano-mcp.git
-cd cardano-mcp
+git clone https://github.com/vespr-wallet/cardano_mcp.git
+cd cardano_mcp
 
 # Install dependencies
 npm install
@@ -125,7 +125,7 @@ For local development, point to your local build:
   "mcpServers": {
     "cardano": {
       "command": "node",
-      "args": ["/absolute/path/to/cardano-mcp/dist/index.js"],
+      "args": ["/absolute/path/to/cardano_mcp/dist/index.js"],
       "env": {
         "VESPR_API_KEY": "your-api-key-here"
       }
