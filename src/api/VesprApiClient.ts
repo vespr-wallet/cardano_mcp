@@ -1,6 +1,12 @@
 import { config } from "../config.js";
 import { FetchApiClient } from "../utils/api/FetchApiClient.js";
-import { WalletDetailedResponseSchema, type WalletDetailedResponse } from "../types/api/schemas.js";
+import {
+  WalletDetailedResponseSchema,
+  AdaSpotPriceResponseSchema,
+  type WalletDetailedResponse,
+  type AdaSpotPriceResponse,
+} from "../types/api/schemas.js";
+import { FiatCurrency } from "../types/currency.js";
 
 export class VesprApiClient {
   private readonly client: FetchApiClient;
@@ -24,6 +30,14 @@ export class VesprApiClient {
       body: { address },
       schema: WalletDetailedResponseSchema,
       context: `wallet(${address.slice(0, 15)}...)`,
+    });
+  }
+
+  async getAdaSpotPrice(currency: FiatCurrency): Promise<AdaSpotPriceResponse> {
+    return this.client.get({
+      path: `/v5/ada/spot?currency=${encodeURIComponent(currency)}`,
+      schema: AdaSpotPriceResponseSchema,
+      context: `ada-spot(${currency})`,
     });
   }
 }

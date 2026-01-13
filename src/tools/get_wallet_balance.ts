@@ -1,10 +1,30 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { VesprApiError } from "../types/errors.js";
-import VesprApiClient from "../api/VesprApiClient.js";
 import { lovelaceToAda, formatTokenAmount } from "../utils/cardano.js";
 import { formatWithCommas } from "../utils/formatting.js";
 import { isValidCardanoAddress } from "../utils/validation.js";
+import VesprApiRepository from "../repository/VesprApiRepository.js";
+import { FiatCurrency, SUPPORTED_CURRENCIES } from "../types/currency.js";
+
+const tokenOutputSchema = z.object({
+  name: z.string().describe("The name of the token"),
+  ticker: z.string().nullish().describe("The ticker of the token"),
+  amount: z.string().describe("The amount of the token"),
+  value: z.string().nullish().describe("The value of the token in the specified currency"),
+});
+
+const balanceOutputSchema = z.object({
+  currency: z.enum(SUPPORTED_CURRENCIES).describe("The currency used for the portfolio and token value"),
+  portfolio_value: z.string().describe("The total value (ada + tokens) of the wallet in the specified currency"),
+  ada_balance: z.string().describe("The balance of ADA in the wallet"),
+  staking_rewards: z.string().describe("The balance of staking rewards in the wallet"),
+  tokens: z.array(tokenOutputSchema).describe("The tokens associated with the wallet"),
+  handles: z.array(z.string()).describe("The ADA handles associated with the wallet"),
+});
+
+type TokenOutput = z.infer<typeof tokenOutputSchema>;
+type BalanceOutput = z.infer<typeof balanceOutputSchema>;
 
 export function registerGetWalletBalance(server: McpServer): void {
   server.registerTool(
@@ -15,21 +35,14 @@ export function registerGetWalletBalance(server: McpServer): void {
         "Query Cardano wallet balance including ADA and native tokens. This will include the balance from all addresses associated with this wallet, not just the address provided.",
       inputSchema: {
         address: z.string().describe("Cardano wallet address (bech32 format, addr1...)"),
+        currency: z
+          .enum(SUPPORTED_CURRENCIES)
+          .describe("The currency to use for the displayed data")
+          .default(FiatCurrency.USD),
       },
-      outputSchema: {
-        ada_balance: z.string(),
-        staking_rewards: z.string(),
-        tokens: z.array(
-          z.object({
-            name: z.string(),
-            ticker: z.string().nullable(),
-            amount: z.string(),
-          }),
-        ),
-        handles: z.array(z.string()),
-      },
+      outputSchema: balanceOutputSchema,
     },
-    async ({ address }) => {
+    async ({ address, currency }) => {
       // Validate address format before making API call
       if (!isValidCardanoAddress(address)) {
         return {
@@ -43,20 +56,55 @@ export function registerGetWalletBalance(server: McpServer): void {
         };
       }
 
+      if (!SUPPORTED_CURRENCIES.includes(currency)) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "Error: Invalid currency. Currency must be one of the supported fiat currencies.",
+            },
+          ],
+          isError: true,
+        };
+      }
+
       try {
-        const walletData = await VesprApiClient.fetchWalletDetailed(address);
+        const [walletData, spotPrice] = await Promise.all([
+          VesprApiRepository.getDetailedWallet(address),
+          VesprApiRepository.getAdaSpotPrice(currency),
+        ]);
+
+        const fiatSpotPrice = parseFloat(spotPrice.spot);
 
         // Transform response to match our output schema
         const adaBalance = lovelaceToAda(walletData.lovelace);
         const stakingRewards = lovelaceToAda(walletData.rewards_lovelace);
 
-        const tokens = walletData.tokens.map((token) => ({
-          name: token.name || token.hex_asset_name,
-          ticker: token.ticker,
-          amount: formatTokenAmount(token.quantity, token.decimals),
-        }));
+        const tokens: TokenOutput[] = walletData.tokens.map((token) => {
+          const decimalsAdjustedAmount = formatTokenAmount(token.quantity, token.decimals);
+          const adaPerAdjustedUnit = token.ada_per_adjusted_unit ? parseFloat(token.ada_per_adjusted_unit) : null;
+          const adaWorth = adaPerAdjustedUnit ? parseFloat(decimalsAdjustedAmount) * adaPerAdjustedUnit : null;
+          const currencyWorth = adaWorth ? adaWorth * fiatSpotPrice : null;
+          const tokenOutput: TokenOutput = {
+            name: token.name || token.hex_asset_name,
+            ticker: token.ticker,
+            amount: decimalsAdjustedAmount,
+            value: currencyWorth ? currencyWorth.toFixed(2) : null,
+          };
 
-        const output = {
+          return tokenOutput;
+        });
+
+        const adaBalanceValue = parseFloat(adaBalance) * fiatSpotPrice;
+
+        const portfolioValue = tokens.reduce(
+          (acc, token) => acc + (token.value ? parseFloat(token.value) : 0),
+          adaBalanceValue,
+        );
+
+        const output: BalanceOutput = {
+          currency,
+          portfolio_value: portfolioValue.toFixed(2),
           ada_balance: adaBalance,
           staking_rewards: stakingRewards,
           tokens,
@@ -70,6 +118,7 @@ export function registerGetWalletBalance(server: McpServer): void {
         const handleCount = walletData.handles.length;
 
         const textSummary = [
+          `Portfolio Value (ADA + Tokens): ${portfolioValue.toFixed(2)} ${currency}`,
           `ADA Balance: ${formattedAda} ADA`,
           `Staking Rewards: ${formattedRewards} ADA`,
           `Tokens: ${tokenCount} token${tokenCount !== 1 ? "s" : ""}`,
