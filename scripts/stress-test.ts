@@ -20,8 +20,8 @@ const TEST_CONFIG = {
   tokenUnit: "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b",
   // VESPR token unit
   vesprUnit: "8be5f3a0db5cda689f1ed0f78f5b9f76889dc82a6e66e6eda06bcfb1564553505242",
-  // Known stake pool (VESPR pool)
-  poolId: "pool1v3wcswejx8svrfqhg77h0ady6shxsdmjnfvtwjkc5xqxlljq9r0",
+  // Known stake pool (NUTS - StakeNuts pool, verified working)
+  poolId: "pool1pu5jlj4q9w9jlxeu370a3c9myx47md5j5m2str0naunn2q3lkdy",
   // Known ADA handle
   handle: "vespr",
 };
@@ -182,7 +182,7 @@ async function runIndividualTests(): Promise<TestResult[]> {
   // 6. get_trending_tokens
   results.push(
     await runTest("get_trending_tokens", async () => {
-      return VesprApiRepository.getTrendingTokens(FiatCurrency.USD, 10);
+      return VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H");
     }),
   );
   console.error(
@@ -277,7 +277,7 @@ async function runConcurrencyTests(): Promise<ConcurrencyResult[]> {
   results.push(
     await runConcurrencyTest(
       "get_trending_tokens (concurrent)",
-      () => VesprApiRepository.getTrendingTokens(FiatCurrency.USD, 10),
+      () => VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
       CONCURRENT_REQUESTS,
     ),
   );
