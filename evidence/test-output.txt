@@ -1,0 +1,22 @@
+
+> @vespr/cardano-mcp@0.1.0 test
+> NODE_OPTIONS='--experimental-vm-modules' jest
+
+(node:10342) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/tools/get_pool_info.test.ts
+PASS src/tools/get_trending_tokens.test.ts
+PASS src/tools/get_staking_info.test.ts
+PASS src/tools/get_asset_metadata.test.ts
+PASS src/tools/get_token_chart.test.ts
+PASS src/tools/get_token_info.test.ts
+PASS src/tools/resolve_ada_handle.test.ts
+PASS src/tools/get_asset_summary.test.ts
+PASS src/tools/get_transaction_history.test.ts
+PASS src/utils/validation.test.ts
+
+Test Suites: 10 passed, 10 total
+Tests:       124 passed, 124 total
+Snapshots:   0 total
+Time:        0.943 s, estimated 1 s
+Ran all test suites.

@@ -46,3 +46,38 @@ export function isValidCardanoAddress(address: string): boolean {
 
   return true;
 }
+
+/**
+ * Pool ID prefix for bech32 encoded stake pool IDs
+ */
+const POOL_PREFIX = "pool1";
+
+/**
+ * Validates a Cardano stake pool ID in bech32 format.
+ * Pool IDs start with "pool1" prefix and are typically 56 characters long.
+ *
+ * Note: This is NOT cryptographic validation - it's a basic format check
+ * to catch obvious errors before making an API call.
+ *
+ * @param poolId - The pool ID string to validate
+ * @returns true if the pool ID appears to be valid format
+ */
+export function isValidPoolId(poolId: string): boolean {
+  if (!poolId || typeof poolId !== "string") {
+    return false;
+  }
+
+  const trimmed = poolId.trim();
+
+  // Pool IDs are bech32 encoded, start with "pool1", ~56 chars
+  if (!trimmed.startsWith(POOL_PREFIX)) {
+    return false;
+  }
+
+  // Pool IDs are typically 56 characters
+  if (trimmed.length < 50 || trimmed.length > 60) {
+    return false;
+  }
+
+  return true;
+}

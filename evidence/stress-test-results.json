@@ -1,0 +1,115 @@
+{
+  "timestamp": "2026-01-20T16:02:45.713Z",
+  "config": {
+    "maxResponseTimeMs": 2000,
+    "concurrentRequests": 5
+  },
+  "individual": [
+    {
+      "tool": "get_supported_currencies",
+      "success": true,
+      "responseTimeMs": 1,
+      "passedThreshold": true
+    },
+    {
+      "tool": "get_wallet_balance",
+      "success": true,
+      "responseTimeMs": 539,
+      "passedThreshold": true
+    },
+    {
+      "tool": "get_transaction_history",
+      "success": false,
+      "responseTimeMs": 338,
+      "passedThreshold": false,
+      "error": "Invalid API response: transactions.0.date: Invalid input: expected number, received string, transactions.0.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.1.date: Invalid input: expected number, received string, transactions.1.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.2.date: Invalid input: expected number, received string, transactions.2.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.3.date: Invalid input: expected number, received string, transactions.3.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.4.date: Invalid input: expected number, received string, transactions.4.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.5.date: Invalid input: expected number, received string, transactions.5.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.6.date: Invalid input: expected number, received string, transactions.6.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.7.date: Invalid input: expected number, received string, transactions.7.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.8.date: Invalid input: expected number, received string, transactions.8.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.9.date: Invalid input: expected number, received string, transactions.9.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.10.date: Invalid input: expected number, received string, transactions.10.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.11.date: Invalid input: expected number, received string, transactions.11.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.12.date: Invalid input: expected number, received string, transactions.12.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.13.date: Invalid input: expected number, received string, transactions.13.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.14.date: Invalid input: expected number, received string, transactions.14.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.15.date: Invalid input: expected number, received string, transactions.15.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.16.date: Invalid input: expected number, received string, transactions.16.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.17.date: Invalid input: expected number, received string, transactions.17.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.18.date: Invalid input: expected number, received string, transactions.18.direction: Invalid option: expected one of \"IN\"|\"OUT\", transactions.19.date: Invalid input: expected number, received string, transactions.19.direction: Invalid option: expected one of \"IN\"|\"OUT\""
+    },
+    {
+      "tool": "get_token_info",
+      "success": true,
+      "responseTimeMs": 39,
+      "passedThreshold": true
+    },
+    {
+      "tool": "get_token_chart",
+      "success": true,
+      "responseTimeMs": 53,
+      "passedThreshold": true
+    },
+    {
+      "tool": "get_trending_tokens",
+      "success": false,
+      "responseTimeMs": 3341,
+      "passedThreshold": false,
+      "error": "VESPR API is temporarily unavailable. Try again later."
+    },
+    {
+      "tool": "get_staking_info",
+      "success": false,
+      "responseTimeMs": 1347,
+      "passedThreshold": false,
+      "error": "Invalid API response: suggested_pool.apy: Invalid input: expected number, received string, suggested_pool.saturation: Invalid input: expected number, received string"
+    },
+    {
+      "tool": "resolve_ada_handle",
+      "success": true,
+      "responseTimeMs": 383,
+      "passedThreshold": true
+    },
+    {
+      "tool": "get_asset_metadata",
+      "success": true,
+      "responseTimeMs": 48,
+      "passedThreshold": true
+    },
+    {
+      "tool": "get_asset_summary",
+      "success": false,
+      "responseTimeMs": 456,
+      "passedThreshold": false,
+      "error": "Invalid API response: other_nfts.0.image: Invalid input"
+    },
+    {
+      "tool": "get_pool_info",
+      "success": false,
+      "responseTimeMs": 4352,
+      "passedThreshold": false,
+      "error": "VESPR API is temporarily unavailable. Try again later."
+    }
+  ],
+  "concurrent": [
+    {
+      "tool": "get_wallet_balance (concurrent)",
+      "totalRequests": 5,
+      "successCount": 5,
+      "failedCount": 0,
+      "avgResponseTimeMs": 948,
+      "maxResponseTimeMs": 986,
+      "minResponseTimeMs": 938
+    },
+    {
+      "tool": "get_token_info (concurrent)",
+      "totalRequests": 5,
+      "successCount": 5,
+      "failedCount": 0,
+      "avgResponseTimeMs": 0,
+      "maxResponseTimeMs": 0,
+      "minResponseTimeMs": 0
+    },
+    {
+      "tool": "get_trending_tokens (concurrent)",
+      "totalRequests": 5,
+      "successCount": 0,
+      "failedCount": 5,
+      "avgResponseTimeMs": 3399,
+      "maxResponseTimeMs": 3400,
+      "minResponseTimeMs": 3397
+    }
+  ],
+  "summary": {
+    "totalTools": 11,
+    "passed": 6,
+    "failed": 5,
+    "allPassed": false
+  }
+}
