@@ -16,7 +16,7 @@ export class VesprApiClient {
       baseUrl: config.apiBaseUrl,
       headers: {
         "Content-Type": "application/json",
-        "x-digest": config.apiKey,
+        "x-api-key": config.apiKey,
       },
       requestTimeoutMs: config.requestTimeoutMs,
       maxRetries: config.maxRetries,
