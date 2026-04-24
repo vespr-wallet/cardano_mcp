@@ -34,9 +34,11 @@ export function registerGetWalletBalance(server: McpServer): void {
       inputSchema: {
         address: z.string().describe("Cardano wallet address (bech32 format, addr1...)"),
         currency: z
-          .enum(SUPPORTED_CURRENCIES)
-          .describe("The currency to use for the displayed data")
-          .default(FiatCurrency.USD),
+          .preprocess(
+            (val) => (val === null || val === "" ? undefined : val),
+            z.enum(SUPPORTED_CURRENCIES).default(FiatCurrency.USD),
+          )
+          .describe("The currency to use for the displayed data"),
       },
       outputSchema: balanceOutputSchema,
     },

@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { logger } from "../logger.js";
-import { VesprApiError, getErrorMessageForStatus } from "../../types/errors.js";
+import { VesprApiError, getFallbackErrorMessage, type ApiErrorResponse } from "../../types/errors.js";
 
 export interface FetchApiClientConfig {
   baseUrl: string;
@@ -94,13 +94,8 @@ export class FetchApiClient {
     }
 
     if (!response.ok) {
-      const message = getErrorMessageForStatus(response.status);
-      logger.error("api_error", {
-        context: request.context,
-        statusCode: response.status,
-        latencyMs: Date.now() - start,
-      });
-      throw new VesprApiError(message, response.status);
+      const errorInfo = await this.parseErrorResponse(response, request.context, start);
+      throw errorInfo;
     }
 
     const data = await this.parseJson(response, request.context, start);
@@ -109,6 +104,32 @@ export class FetchApiClient {
     logger.info("api_success", { context: request.context, latencyMs: Date.now() - start });
 
     return result;
+  }
+
+  private async parseErrorResponse(response: Response, context: string, start: number): Promise<VesprApiError> {
+    let apiError: ApiErrorResponse | undefined;
+
+    try {
+      const body = await response.json();
+      if (body && typeof body === "object") {
+        apiError = body as ApiErrorResponse;
+      }
+    } catch {
+      // Failed to parse error response body - use fallback message
+    }
+
+    const message = apiError?.errorMessage || getFallbackErrorMessage(response.status);
+    const devMessage = apiError?.devErrorMessage;
+
+    logger.error("api_error", {
+      context,
+      statusCode: response.status,
+      errorMessage: message,
+      devErrorMessage: devMessage,
+      latencyMs: Date.now() - start,
+    });
+
+    return new VesprApiError(message, response.status, undefined, devMessage);
   }
 
   private handleFetchError(error: unknown, context: string, start: number): VesprApiError {

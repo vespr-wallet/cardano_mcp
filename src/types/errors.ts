@@ -7,6 +7,7 @@ export class VesprApiError extends Error {
     message: string,
     public statusCode?: number,
     public originalError?: Error,
+    public devMessage?: string,
   ) {
     super(message);
     this.name = "VesprApiError";
@@ -14,22 +15,35 @@ export class VesprApiError extends Error {
 }
 
 /**
- * Get user-friendly error message based on HTTP status code
+ * API error response format from the backend
  */
-export function getErrorMessageForStatus(statusCode: number): string {
+export interface ApiErrorResponse {
+  errorMessage?: string;
+  devErrorMessage?: string;
+}
+
+/**
+ * Get fallback error message based on HTTP status code.
+ * Used when the API doesn't provide a specific error message.
+ */
+export function getFallbackErrorMessage(statusCode: number): string {
   switch (statusCode) {
     case 400:
-      return "Invalid wallet address format.";
+      return "Invalid request parameters.";
+    case 401:
+      return "Authentication failed. Check API credentials.";
+    case 403:
+      return "Access denied.";
     case 404:
-      return "Wallet not found. Verify the address is correct.";
+      return "The requested resource was not found.";
     case 429:
-      return "Rate limited by VESPR API. Please wait before retrying.";
+      return "Rate limited. Please wait before retrying.";
     case 500:
     case 502:
     case 503:
     case 504:
-      return "VESPR API is temporarily unavailable. Try again later.";
+      return "Service temporarily unavailable. Try again later.";
     default:
-      return `VESPR API returned an error (status ${statusCode}).`;
+      return `Request failed (status ${statusCode}).`;
   }
 }
