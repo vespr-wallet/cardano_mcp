@@ -58,7 +58,8 @@ export function registerGetAssetMetadata(server: McpServer): void {
     },
     async ({ unit }) => {
       // Validate input
-      if (!unit || unit.trim() === "") {
+      const trimmedUnit = unit?.trim() ?? "";
+      if (!trimmedUnit) {
         return {
           content: [{ type: "text" as const, text: "Error: Asset unit cannot be empty." }],
           isError: true,
@@ -66,10 +67,10 @@ export function registerGetAssetMetadata(server: McpServer): void {
       }
 
       try {
-        const response = await VesprApiRepository.getAssetMetadata(unit.trim());
+        const response = await VesprApiRepository.getAssetMetadata(trimmedUnit);
 
         const output = {
-          unit,
+          unit: trimmedUnit,
           name: response.name,
           has_metadata: response.onchain_metadata !== null,
           onchain_metadata: response.onchain_metadata,
@@ -79,11 +80,13 @@ export function registerGetAssetMetadata(server: McpServer): void {
         let summary: string;
         if (response.onchain_metadata) {
           const metadataFormatted = formatMetadata(response.onchain_metadata);
-          summary = [`Asset: ${response.name}`, `Unit: ${unit}`, "", "On-chain Metadata:", metadataFormatted].join(
+          summary = [`Asset: ${response.name}`, `Unit: ${trimmedUnit}`, "", "On-chain Metadata:", metadataFormatted].join(
             "\n",
           );
         } else {
-          summary = [`Asset: ${response.name}`, `Unit: ${unit}`, `Status: No on-chain metadata found`].join("\n");
+          summary = [`Asset: ${response.name}`, `Unit: ${trimmedUnit}`, `Status: No on-chain metadata found`].join(
+            "\n",
+          );
         }
 
         return {

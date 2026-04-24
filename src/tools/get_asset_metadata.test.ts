@@ -177,9 +177,19 @@ describe("get_asset_metadata tool", () => {
 
       getAssetMetadataSpy.mockResolvedValue(mockResponse);
 
-      await registeredHandler({ unit: `  ${testUnit}  ` });
+      const result = (await registeredHandler({ unit: `  ${testUnit}  ` })) as {
+        content: { type: string; text: string }[];
+        structuredContent: {
+          unit: string;
+          name: string;
+          has_metadata: boolean;
+          onchain_metadata: Record<string, unknown> | null;
+        };
+      };
 
       expect(getAssetMetadataSpy).toHaveBeenCalledWith(testUnit);
+      expect(result.structuredContent.unit).toBe(testUnit);
+      expect(result.content[0].text).toContain(`Unit: ${testUnit}`);
     });
   });
 
