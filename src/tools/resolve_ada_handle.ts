@@ -23,8 +23,10 @@ export function registerResolveAdaHandle(server: McpServer): void {
       outputSchema: handleOutputSchema,
     },
     async ({ handle }) => {
+      const trimmedHandle = handle?.trim() ?? "";
+
       // Validate input
-      if (!handle || handle.trim() === "" || handle === "$") {
+      if (!trimmedHandle || trimmedHandle === "$") {
         return {
           content: [{ type: "text" as const, text: "Error: Handle cannot be empty." }],
           isError: true,
@@ -32,10 +34,10 @@ export function registerResolveAdaHandle(server: McpServer): void {
       }
 
       try {
-        const response = await VesprApiRepository.resolveAdaHandle(handle);
+        const response = await VesprApiRepository.resolveAdaHandle(trimmedHandle);
 
         // Normalize handle for display (without $)
-        const normalizedHandle = handle.startsWith("$") ? handle.slice(1) : handle;
+        const normalizedHandle = (trimmedHandle.startsWith("$") ? trimmedHandle.slice(1) : trimmedHandle).toLowerCase();
 
         const output = {
           handle: normalizedHandle,

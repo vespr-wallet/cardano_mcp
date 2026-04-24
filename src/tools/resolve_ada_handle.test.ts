@@ -138,6 +138,42 @@ describe("resolve_ada_handle tool", () => {
       expect(result.content[0].text).toContain("Handle: $nonexistent");
       expect(result.content[0].text).toContain("Status: Not found");
     });
+
+    it("trims whitespace before resolution and display", async () => {
+      const mockResponse: AdaHandleOwnerResponse = {
+        owner:
+          "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv",
+      };
+
+      resolveAdaHandleSpy.mockResolvedValue(mockResponse);
+
+      const result = (await registeredHandler({ handle: "  $myhandle  " })) as {
+        content: { type: string; text: string }[];
+        structuredContent: { handle: string; owner: string | null; found: boolean };
+      };
+
+      expect(resolveAdaHandleSpy).toHaveBeenCalledWith("$myhandle");
+      expect(result.structuredContent.handle).toBe("myhandle");
+      expect(result.content[0].text).toContain("Handle: $myhandle");
+    });
+
+    it("normalizes mixed-case handles to lowercase for display", async () => {
+      const mockResponse: AdaHandleOwnerResponse = {
+        owner:
+          "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv",
+      };
+
+      resolveAdaHandleSpy.mockResolvedValue(mockResponse);
+
+      const result = (await registeredHandler({ handle: "  $MyHandle  " })) as {
+        content: { type: string; text: string }[];
+        structuredContent: { handle: string; owner: string | null; found: boolean };
+      };
+
+      expect(resolveAdaHandleSpy).toHaveBeenCalledWith("$MyHandle");
+      expect(result.structuredContent.handle).toBe("myhandle");
+      expect(result.content[0].text).toContain("Handle: $myhandle");
+    });
   });
 
   describe("error handling", () => {
