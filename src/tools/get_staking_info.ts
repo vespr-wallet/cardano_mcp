@@ -219,8 +219,10 @@ export function registerGetStakingInfo(server: McpServer): void {
       outputSchema: stakingOutputSchema,
     },
     async ({ address }) => {
+      const trimmedAddress = address.trim();
+
       // Validate address
-      if (!isValidCardanoAddress(address)) {
+      if (!isValidCardanoAddress(trimmedAddress)) {
         return {
           content: [{ type: "text" as const, text: "Error: Invalid Cardano address." }],
           isError: true,
@@ -228,7 +230,7 @@ export function registerGetStakingInfo(server: McpServer): void {
       }
 
       try {
-        const response = await VesprApiRepository.getStakingInfo(address);
+        const response = await VesprApiRepository.getStakingInfo(trimmedAddress);
 
         const output = transformResponse(response);
         const summary = formatHumanReadable(response);

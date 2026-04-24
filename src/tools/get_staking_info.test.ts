@@ -85,6 +85,28 @@ describe("get_staking_info tool", () => {
 
       expect(getStakingInfoSpy).not.toHaveBeenCalled();
     });
+
+    it("trims whitespace before validation and repository calls", async () => {
+      const validAddress =
+        "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv";
+      const mockResponse: StakingInfoResponse = {
+        runtime_type: "NEVER_REGISTERED",
+        staking_address: "stake1uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        lovelace: "10000000000",
+        response_time_utc: 1700000000000,
+        epoch_start_time_utc: 1699900000000,
+        epoch_end_time_utc: 1700500000000,
+        first_reward_time_utc: 1701000000000,
+        average_apy: 0.04,
+        suggested_pool: createMockPool(),
+      };
+
+      getStakingInfoSpy.mockResolvedValue(mockResponse);
+
+      await registeredHandler({ address: `  ${validAddress}  ` });
+
+      expect(getStakingInfoSpy).toHaveBeenCalledWith(validAddress);
+    });
   });
 
   describe("NEVER_REGISTERED response", () => {
