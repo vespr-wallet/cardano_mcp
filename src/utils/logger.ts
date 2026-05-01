@@ -13,6 +13,7 @@ interface LogEntry {
 }
 
 function log(level: LogLevel, event: string, data: Record<string, unknown> = {}): void {
+  if (process.env.CARDANO_MCP_LOG_LEVEL === "silent") return;
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
