@@ -1,34 +1,46 @@
 #!/usr/bin/env npx tsx
 /**
  * Stress test script for VESPR MCP Server tools.
- * Tests all endpoints for:
- * - Response time (< 2 seconds)
- * - Concurrent query handling
- * - Error resilience
  *
- * Usage: npx tsx scripts/stress-test.ts
+ * Tests 4 endpoints for:
+ *   - Baseline response time (sequential, < 500ms threshold)
+ *   - Concurrent query handling (20 parallel requests per scenario)
+ *   - High-load resilience (50 parallel requests)
+ *   - Error resilience under load
+ *
+ * Human-readable output → stderr  (for screenshots / logs)
+ * Machine-readable JSON → stdout  (for CI / reporting)
+ *
+ * Usage:
+ *   VESPR_API_KEY=<key> npx tsx scripts/stress-test.ts
+ *   VESPR_API_KEY=<key> npm run stress-test
  */
 
 import VesprApiRepository from "../src/repository/VesprApiRepository.js";
-import { FiatCurrency, CryptoCurrency } from "../src/types/currency.js";
+import {
+  FiatCurrency,
+  CryptoCurrency,
+  SUPPORTED_FIAT_CURRENCIES,
+  SUPPORTED_CRYPTO_CURRENCIES,
+} from "../src/types/currency.js";
 
-// Test configuration - using known active Cardano entities
+// ─── Configuration ────────────────────────────────────────────────────────────
+
 const TEST_CONFIG = {
-  // VESPR official wallet (known active wallet with tokens)
-  address: "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv",
-  // SNEK token (popular token)
+  // SNEK token (popular, well-supported)
   tokenUnit: "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b",
-  // VESPR token unit
+  // VESPR token
   vesprUnit: "8be5f3a0db5cda689f1ed0f78f5b9f76889dc82a6e66e6eda06bcfb1564553505242",
-  // Known stake pool (NUTS - StakeNuts pool, verified working)
-  poolId: "pool1pu5jlj4q9w9jlxeu370a3c9myx47md5j5m2str0naunn2q3lkdy",
-  // Known ADA handle
-  handle: "vespr",
+  // Test wallet address
+  walletAddress:
+    "addr1qyhdaj73wy4my8f8vhqujegew2kgndp8jhh6ymrlje43agy9k9643uyqgz44qyg7jpm2jflg02f7uy6jp3ex7gfal7zq3kqtyn",
 };
 
-// Performance thresholds
-const MAX_RESPONSE_TIME_MS = 2000;
-const CONCURRENT_REQUESTS = 5;
+const MAX_RESPONSE_TIME_MS = 500;
+const CONCURRENT_REQUESTS = 20;
+const HIGH_LOAD_REQUESTS = 50;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TestResult {
   tool: string;
@@ -39,29 +51,34 @@ interface TestResult {
 }
 
 interface ConcurrencyResult {
-  tool: string;
+  scenario: string;
   totalRequests: number;
   successCount: number;
   failedCount: number;
+  wallTimeMs: number;
   avgResponseTimeMs: number;
-  maxResponseTimeMs: number;
   minResponseTimeMs: number;
+  maxResponseTimeMs: number;
+  p50Ms: number;
+  p95Ms: number;
+  p99Ms: number;
+  throughputRps: number;
 }
 
-/**
- * Execute a single test and measure response time
- */
-async function runTest<T>(name: string, testFn: () => Promise<T>): Promise<TestResult> {
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const idx = Math.ceil((p / 100) * sorted.length) - 1;
+  return sorted[Math.max(0, idx)];
+}
+
+async function runTest<T>(name: string, fn: () => Promise<T>): Promise<TestResult> {
   const start = performance.now();
   try {
-    await testFn();
+    await fn();
     const responseTimeMs = Math.round(performance.now() - start);
-    return {
-      tool: name,
-      success: true,
-      responseTimeMs,
-      passedThreshold: responseTimeMs < MAX_RESPONSE_TIME_MS,
-    };
+    return { tool: name, success: true, responseTimeMs, passedThreshold: responseTimeMs < MAX_RESPONSE_TIME_MS };
   } catch (error) {
     const responseTimeMs = Math.round(performance.now() - start);
     return {
@@ -74,341 +91,274 @@ async function runTest<T>(name: string, testFn: () => Promise<T>): Promise<TestR
   }
 }
 
-/**
- * Run concurrent requests and measure performance
- */
-async function runConcurrencyTest<T>(
-  name: string,
-  testFn: () => Promise<T>,
-  count: number,
+async function runConcurrencyTest(
+  scenario: string,
+  tasks: Array<() => Promise<unknown>>,
 ): Promise<ConcurrencyResult> {
+  const wallStart = performance.now();
   const times: number[] = [];
   let successCount = 0;
   let failedCount = 0;
 
-  const promises = Array(count)
-    .fill(null)
-    .map(async () => {
+  await Promise.all(
+    tasks.map(async (task) => {
       const start = performance.now();
       try {
-        await testFn();
-        const elapsed = Math.round(performance.now() - start);
-        times.push(elapsed);
+        await task();
+        times.push(Math.round(performance.now() - start));
         successCount++;
       } catch {
-        const elapsed = Math.round(performance.now() - start);
-        times.push(elapsed);
+        times.push(Math.round(performance.now() - start));
         failedCount++;
       }
-    });
+    }),
+  );
 
-  await Promise.all(promises);
-
-  const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-  const max = Math.max(...times);
-  const min = Math.min(...times);
+  const wallTimeMs = Math.round(performance.now() - wallStart);
+  const sorted = [...times].sort((a, b) => a - b);
 
   return {
-    tool: name,
-    totalRequests: count,
+    scenario,
+    totalRequests: tasks.length,
     successCount,
     failedCount,
-    avgResponseTimeMs: avg,
-    maxResponseTimeMs: max,
-    minResponseTimeMs: min,
+    wallTimeMs,
+    avgResponseTimeMs: Math.round(times.reduce((a, b) => a + b, 0) / times.length),
+    minResponseTimeMs: sorted[0] ?? 0,
+    maxResponseTimeMs: sorted[sorted.length - 1] ?? 0,
+    p50Ms: percentile(sorted, 50),
+    p95Ms: percentile(sorted, 95),
+    p99Ms: percentile(sorted, 99),
+    throughputRps: Math.round((tasks.length / Math.max(1, wallTimeMs)) * 1000),
   };
 }
 
-/**
- * Run all individual tool tests
- */
+// ─── Individual tests (sequential baseline) ───────────────────────────────────
+
 async function runIndividualTests(): Promise<TestResult[]> {
-  console.error("\n🔧 Running individual tool tests...\n");
+  console.error("\n🔧 Individual tool tests (sequential baseline)\n");
+
+  const tests: Array<[string, () => Promise<unknown>]> = [
+    [
+      "get_supported_currencies",
+      async () => {
+        if (SUPPORTED_FIAT_CURRENCIES.length === 0 || SUPPORTED_CRYPTO_CURRENCIES.length === 0) {
+          throw new Error("No currencies found");
+        }
+      },
+    ],
+    ["get_token_info", () => VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD)],
+    ["get_token_chart", () => VesprApiRepository.getTokenChart(TEST_CONFIG.tokenUnit, "24H", CryptoCurrency.ADA)],
+    ["get_ada_spot_price", () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD)],
+    ["get_wallet_balance", () => VesprApiRepository.getDetailedWallet(TEST_CONFIG.walletAddress)],
+  ];
+
   const results: TestResult[] = [];
-
-  // 1. get_supported_currencies (static, no API call)
-  results.push(
-    await runTest("get_supported_currencies", async () => {
-      // This is static data, just verify we can access it
-      const { SUPPORTED_FIAT_CURRENCIES, SUPPORTED_CRYPTO_CURRENCIES } = await import("../src/types/currency.js");
-      if (SUPPORTED_FIAT_CURRENCIES.length === 0 || SUPPORTED_CRYPTO_CURRENCIES.length === 0) {
-        throw new Error("No currencies found");
-      }
-      return { fiat: SUPPORTED_FIAT_CURRENCIES, crypto: SUPPORTED_CRYPTO_CURRENCIES };
-    }),
-  );
-  console.error(`  ✓ get_supported_currencies: ${results[results.length - 1].responseTimeMs}ms`);
-
-  // 2. get_wallet_balance
-  results.push(
-    await runTest("get_wallet_balance", async () => {
-      return VesprApiRepository.getDetailedWallet(TEST_CONFIG.address, FiatCurrency.USD);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_wallet_balance: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 3. get_transaction_history
-  results.push(
-    await runTest("get_transaction_history", async () => {
-      return VesprApiRepository.getTransactionHistory(TEST_CONFIG.address);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_transaction_history: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 4. get_token_info
-  results.push(
-    await runTest("get_token_info", async () => {
-      return VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_token_info: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 5. get_token_chart
-  results.push(
-    await runTest("get_token_chart", async () => {
-      return VesprApiRepository.getTokenChart(TEST_CONFIG.tokenUnit, "24H", CryptoCurrency.ADA);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_token_chart: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 6. get_trending_tokens
-  results.push(
-    await runTest("get_trending_tokens", async () => {
-      return VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H");
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_trending_tokens: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 7. get_staking_info
-  results.push(
-    await runTest("get_staking_info", async () => {
-      return VesprApiRepository.getStakingInfo(TEST_CONFIG.address);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_staking_info: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 8. resolve_ada_handle
-  results.push(
-    await runTest("resolve_ada_handle", async () => {
-      return VesprApiRepository.resolveAdaHandle(TEST_CONFIG.handle);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} resolve_ada_handle: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 9. get_asset_metadata
-  results.push(
-    await runTest("get_asset_metadata", async () => {
-      return VesprApiRepository.getAssetMetadata(TEST_CONFIG.tokenUnit);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_asset_metadata: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 10. get_asset_summary
-  results.push(
-    await runTest("get_asset_summary", async () => {
-      return VesprApiRepository.getAssetSummary([TEST_CONFIG.tokenUnit, TEST_CONFIG.vesprUnit]);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_asset_summary: ${results[results.length - 1].responseTimeMs}ms`,
-  );
-
-  // 11. get_pool_info
-  results.push(
-    await runTest("get_pool_info", async () => {
-      return VesprApiRepository.getPoolInfo(TEST_CONFIG.poolId);
-    }),
-  );
-  console.error(
-    `  ${results[results.length - 1].success ? "✓" : "✗"} get_pool_info: ${results[results.length - 1].responseTimeMs}ms`,
-  );
+  for (const [name, fn] of tests) {
+    const r = await runTest(name, fn);
+    results.push(r);
+    const icon = r.success ? (r.passedThreshold ? "✓" : "⚠") : "✗";
+    const errSuffix = r.error ? `  [${r.error.slice(0, 80)}]` : "";
+    console.error(`  ${icon} ${r.tool.padEnd(32)} ${r.responseTimeMs.toString().padStart(5)}ms${errSuffix}`);
+  }
 
   return results;
 }
 
-/**
- * Run concurrency tests for critical endpoints
- */
+// ─── Concurrency tests ────────────────────────────────────────────────────────
+
 async function runConcurrencyTests(): Promise<ConcurrencyResult[]> {
-  console.error(`\n🔀 Running concurrency tests (${CONCURRENT_REQUESTS} parallel requests)...\n`);
+  console.error(`\n🔀 Concurrency tests\n`);
   const results: ConcurrencyResult[] = [];
 
-  // Test concurrent wallet balance queries
+  // Scenario A: 20 parallel — same endpoint (spot price, LRU-cacheable)
   results.push(
     await runConcurrencyTest(
-      "get_wallet_balance (concurrent)",
-      () => VesprApiRepository.getDetailedWallet(TEST_CONFIG.address, FiatCurrency.USD),
-      CONCURRENT_REQUESTS,
+      `ada_spot_price × ${CONCURRENT_REQUESTS} parallel (same key)`,
+      Array.from({ length: CONCURRENT_REQUESTS }, () => () =>
+        VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD),
+      ),
     ),
-  );
-  console.error(
-    `  ${results[results.length - 1].tool}: avg ${results[results.length - 1].avgResponseTimeMs}ms, max ${results[results.length - 1].maxResponseTimeMs}ms`,
   );
 
-  // Test concurrent token info queries
+  // Scenario B: 20 parallel — token info (same token, LRU-cacheable)
   results.push(
     await runConcurrencyTest(
-      "get_token_info (concurrent)",
-      () => VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
-      CONCURRENT_REQUESTS,
+      `get_token_info × ${CONCURRENT_REQUESTS} parallel (same key)`,
+      Array.from({ length: CONCURRENT_REQUESTS }, () => () =>
+        VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
+      ),
     ),
-  );
-  console.error(
-    `  ${results[results.length - 1].tool}: avg ${results[results.length - 1].avgResponseTimeMs}ms, max ${results[results.length - 1].maxResponseTimeMs}ms`,
   );
 
-  // Test concurrent trending queries
+  // Scenario C: 20 parallel — trending tokens (LRU-cacheable)
   results.push(
     await runConcurrencyTest(
-      "get_trending_tokens (concurrent)",
-      () => VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
-      CONCURRENT_REQUESTS,
+      `get_trending_tokens × ${CONCURRENT_REQUESTS} parallel (same key)`,
+      Array.from({ length: CONCURRENT_REQUESTS }, () => () =>
+        VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
+      ),
     ),
   );
-  console.error(
-    `  ${results[results.length - 1].tool}: avg ${results[results.length - 1].avgResponseTimeMs}ms, max ${results[results.length - 1].maxResponseTimeMs}ms`,
+
+  // Scenario D: 20 parallel — all tools mixed (warm LRU cache, keys pre-loaded by prior scenarios)
+  results.push(
+    await runConcurrencyTest(
+      `all tools mixed × ${CONCURRENT_REQUESTS} parallel (warm cache)`,
+      [
+        ...Array.from({ length: 5 }, () => () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD)),
+        ...Array.from({ length: 5 }, () => () =>
+          VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
+        ),
+        ...Array.from({ length: 5 }, () => () =>
+          VesprApiRepository.getTokenChart(TEST_CONFIG.tokenUnit, "24H", CryptoCurrency.ADA),
+        ),
+        ...Array.from({ length: 5 }, () => () =>
+          VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
+        ),
+      ],
+    ),
   );
+
+  // Scenario E: 50 parallel high-load wave
+  const highLoadPool: Array<() => Promise<unknown>> = [
+    () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD),
+    () => VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
+    () => VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
+    () => VesprApiRepository.getTokenChart(TEST_CONFIG.tokenUnit, "24H", CryptoCurrency.ADA),
+    () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.EUR),
+  ];
+  results.push(
+    await runConcurrencyTest(
+      `high-load wave × ${HIGH_LOAD_REQUESTS} parallel (mixed)`,
+      Array.from({ length: HIGH_LOAD_REQUESTS }, (_, i) => highLoadPool[i % highLoadPool.length]),
+    ),
+  );
+
+  for (const r of results) {
+    printConcurrencyRow(r);
+  }
 
   return results;
 }
 
-/**
- * Format and display results
- */
-function formatResults(individual: TestResult[], concurrent: ConcurrencyResult[]): void {
-  console.error("\n" + "=".repeat(60));
-  console.error("📊 STRESS TEST RESULTS");
-  console.error("=".repeat(60));
+function printConcurrencyRow(r: ConcurrencyResult): void {
+  const passRate = ((r.successCount / r.totalRequests) * 100).toFixed(0);
+  const icon = r.failedCount === 0 ? "✓" : "⚠";
+  console.error(`  ${icon} ${r.scenario}`);
+  console.error(
+    `    ${r.successCount}/${r.totalRequests} succeeded (${passRate}%)  |  wall: ${r.wallTimeMs}ms  |  throughput: ${r.throughputRps} req/s`,
+  );
+  console.error(
+    `    latency — p50: ${r.p50Ms}ms  p95: ${r.p95Ms}ms  p99: ${r.p99Ms}ms  max: ${r.maxResponseTimeMs}ms\n`,
+  );
+}
 
-  // Individual test summary
-  console.error("\n📋 Individual Tool Tests:");
-  console.error("-".repeat(60));
+// ─── Final report ─────────────────────────────────────────────────────────────
 
-  const passed = individual.filter((r) => r.passedThreshold && r.success);
-  const failed = individual.filter((r) => !r.passedThreshold || !r.success);
+function printReport(individual: TestResult[], concurrent: ConcurrencyResult[]): void {
+  const sep = "=".repeat(62);
+  const dash = "-".repeat(62);
 
-  for (const result of individual) {
-    const status = result.success ? (result.passedThreshold ? "✅ PASS" : "⚠️ SLOW") : "❌ FAIL";
-    console.error(
-      `  ${status} ${result.tool.padEnd(30)} ${result.responseTimeMs.toString().padStart(5)}ms${result.error ? ` (${result.error})` : ""}`,
-    );
+  console.error(`\n${sep}`);
+  console.error("📊  STRESS TEST RESULTS");
+  console.error(sep);
+
+  console.error("\n📋  Individual Tool Tests (sequential):");
+  console.error(dash);
+  for (const r of individual) {
+    const status = r.success ? (r.passedThreshold ? "✅ PASS" : "⚠️ SLOW") : "❌ FAIL";
+    const errSuffix = r.error ? `  (${r.error.slice(0, 60)})` : "";
+    console.error(`  ${status}  ${r.tool.padEnd(30)}  ${r.responseTimeMs.toString().padStart(5)}ms${errSuffix}`);
   }
 
-  // Concurrency test summary
-  console.error("\n📋 Concurrency Tests:");
-  console.error("-".repeat(60));
-
-  for (const result of concurrent) {
-    const passRate = ((result.successCount / result.totalRequests) * 100).toFixed(0);
-    console.error(`  ${result.tool}:`);
-    console.error(`    Success: ${result.successCount}/${result.totalRequests} (${passRate}%)`);
-    console.error(
-      `    Response times: min=${result.minResponseTimeMs}ms, avg=${result.avgResponseTimeMs}ms, max=${result.maxResponseTimeMs}ms`,
-    );
+  console.error("\n📋  Concurrency Tests:");
+  console.error(dash);
+  for (const r of concurrent) {
+    const passRate = ((r.successCount / r.totalRequests) * 100).toFixed(0);
+    const status = r.failedCount === 0 ? "✅" : "⚠️";
+    console.error(`  ${status}  ${r.scenario}`);
+    console.error(`      Requests : ${r.successCount}/${r.totalRequests} (${passRate}%)`);
+    console.error(`      Wall time: ${r.wallTimeMs}ms  |  Throughput: ${r.throughputRps} req/s`);
+    console.error(`      Latency  : p50=${r.p50Ms}ms  p95=${r.p95Ms}ms  p99=${r.p99Ms}ms  max=${r.maxResponseTimeMs}ms`);
   }
 
-  // Overall summary
-  console.error("\n" + "=".repeat(60));
-  console.error("📈 SUMMARY");
-  console.error("=".repeat(60));
-  console.error(`  Total tools tested: ${individual.length}`);
-  console.error(`  Passed (< ${MAX_RESPONSE_TIME_MS}ms): ${passed.length}`);
-  console.error(`  Failed/Slow: ${failed.length}`);
-  console.error(`  Concurrent tests: ${concurrent.length}`);
-
-  const allPassed = passed.length === individual.length;
+  const passed = individual.filter((r) => r.success && r.passedThreshold);
+  const failed = individual.filter((r) => !r.success || !r.passedThreshold);
   const allConcurrentPassed = concurrent.every((r) => r.successCount === r.totalRequests);
 
+  console.error(`\n${sep}`);
+  console.error("📈  SUMMARY");
+  console.error(sep);
+  console.error(`  Tools tested            : ${individual.length}`);
+  console.error(`  Passed (< ${MAX_RESPONSE_TIME_MS}ms)       : ${passed.length}`);
+  console.error(`  Failed / Slow           : ${failed.length}`);
+  console.error(`  Concurrency scenarios   : ${concurrent.length}`);
+  console.error(`  Max concurrency tested  : ${HIGH_LOAD_REQUESTS} parallel requests`);
   console.error(
-    `\n  Overall: ${allPassed && allConcurrentPassed ? "✅ ALL TESTS PASSED" : "⚠️ SOME TESTS NEED ATTENTION"}`,
+    `\n  Overall: ${passed.length === individual.length && allConcurrentPassed ? "✅ ALL TESTS PASSED" : "⚠️  SOME TESTS NEED ATTENTION"}`,
   );
-  console.error("=".repeat(60) + "\n");
+  console.error(`${sep}\n`);
 
-  // Output JSON results for programmatic consumption
-  const jsonOutput = {
-    timestamp: new Date().toISOString(),
-    config: {
-      maxResponseTimeMs: MAX_RESPONSE_TIME_MS,
-      concurrentRequests: CONCURRENT_REQUESTS,
-    },
-    individual: individual.map((r) => ({
-      tool: r.tool,
-      success: r.success,
-      responseTimeMs: r.responseTimeMs,
-      passedThreshold: r.passedThreshold,
-      error: r.error,
-    })),
-    concurrent: concurrent.map((r) => ({
-      tool: r.tool,
-      totalRequests: r.totalRequests,
-      successCount: r.successCount,
-      failedCount: r.failedCount,
-      avgResponseTimeMs: r.avgResponseTimeMs,
-      maxResponseTimeMs: r.maxResponseTimeMs,
-      minResponseTimeMs: r.minResponseTimeMs,
-    })),
-    summary: {
-      totalTools: individual.length,
-      passed: passed.length,
-      failed: failed.length,
-      allPassed: allPassed && allConcurrentPassed,
-    },
-  };
-
-  // Output JSON to stdout
-  console.log(JSON.stringify(jsonOutput, null, 2));
+  // JSON summary → stdout (for CI / reporting tools)
+  console.log(
+    JSON.stringify(
+      {
+        timestamp: new Date().toISOString(),
+        config: {
+          maxResponseTimeMs: MAX_RESPONSE_TIME_MS,
+          concurrentRequests: CONCURRENT_REQUESTS,
+          highLoadRequests: HIGH_LOAD_REQUESTS,
+        },
+        individual: individual.map((r) => ({
+          tool: r.tool,
+          success: r.success,
+          responseTimeMs: r.responseTimeMs,
+          passedThreshold: r.passedThreshold,
+          ...(r.error ? { error: r.error } : {}),
+        })),
+        concurrent: concurrent.map((r) => ({ ...r })),
+        summary: {
+          totalTools: individual.length,
+          passed: passed.length,
+          failed: failed.length,
+          allPassed: passed.length === individual.length && allConcurrentPassed,
+        },
+      },
+      null,
+      2,
+    ),
+  );
 }
 
-/**
- * Main entry point
- */
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 async function main(): Promise<void> {
-  console.error("🚀 VESPR MCP Server Stress Test");
-  console.error(`   Threshold: ${MAX_RESPONSE_TIME_MS}ms`);
-  console.error(`   Concurrent: ${CONCURRENT_REQUESTS} requests`);
+  console.error("╔══════════════════════════════════════════════════════════╗");
+  console.error("║        VESPR Cardano MCP — Concurrent Stress Test        ║");
+  console.error("╚══════════════════════════════════════════════════════════╝");
+  console.error(`  Threshold  : ${MAX_RESPONSE_TIME_MS}ms per request`);
+  console.error(`  Concurrent : ${CONCURRENT_REQUESTS} parallel requests`);
+  console.error(`  High-load  : ${HIGH_LOAD_REQUESTS} parallel requests`);
+  console.error(`  Node.js    : ${process.version}`);
+  console.error(`  Started    : ${new Date().toISOString()}`);
 
-  // Check for API key
   if (!process.env.VESPR_API_KEY) {
-    console.error("\n❌ Error: VESPR_API_KEY environment variable is required");
-    console.error("   Set it with: export VESPR_API_KEY=your-api-key\n");
+    console.error("\n❌  VESPR_API_KEY environment variable is required.");
+    console.error("    Set it with: export VESPR_API_KEY=your-api-key\n");
     process.exit(1);
   }
 
-  try {
-    const individualResults = await runIndividualTests();
-    const concurrencyResults = await runConcurrencyTests();
+  const individualResults = await runIndividualTests();
+  const concurrencyResults = await runConcurrencyTests();
+  printReport(individualResults, concurrencyResults);
 
-    formatResults(individualResults, concurrencyResults);
-
-    // Exit with error code if any tests failed
-    const anyFailed = individualResults.some((r) => !r.success);
-    const anySlow = individualResults.some((r) => !r.passedThreshold);
-
-    if (anyFailed) {
-      process.exit(1);
-    } else if (anySlow) {
-      process.exit(2); // Warning exit code for slow but successful
-    }
-  } catch (error) {
-    console.error("\n❌ Stress test failed with error:", error);
-    process.exit(1);
-  }
+  const anyFailed = individualResults.some((r) => !r.success);
+  const anySlow = individualResults.some((r) => !r.passedThreshold);
+  process.exit(anyFailed ? 1 : anySlow ? 2 : 0);
 }
 
-main();
+main().catch((err) => {
+  console.error("\n❌  Fatal error:", err);
+  process.exit(1);
+});
