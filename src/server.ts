@@ -8,6 +8,8 @@ import { registerStreamableHttpRoutes } from "./transports/streamableHttp.js";
 import { registerHttpTools } from "./tools/index.js";
 import { createRateLimitHook } from "./middleware/rateLimit.js";
 
+let serverStartTime: number | null = null;
+
 /**
  * Create and configure Fastify HTTP server
  * Outputs logs to stderr to avoid interfering with MCP protocol on stdout
@@ -52,7 +54,13 @@ async function configureServer(server: FastifyInstance): Promise<void> {
 
   // Health check endpoint
   server.get("/health", async () => {
-    return { status: "ok", timestamp: new Date().toISOString() };
+    const now = Date.now();
+    return {
+      status: "ok",
+      timestamp: new Date(now).toISOString(),
+      startedAt: serverStartTime ? new Date(serverStartTime).toISOString() : null,
+      uptimeMs: serverStartTime ? now - serverStartTime : null,
+    };
   });
 
   // Root endpoint
@@ -92,6 +100,7 @@ async function configureServer(server: FastifyInstance): Promise<void> {
  * Start the HTTP server
  */
 export async function startServer(): Promise<FastifyInstance> {
+  serverStartTime = Date.now();
   const server = createServer();
   await configureServer(server);
 
