@@ -1,5 +1,6 @@
 import { config } from "../config.js";
 import { FetchApiClient } from "../utils/api/FetchApiClient.js";
+import { getCurrentApiKey } from "../utils/apiKeyContext.js";
 import {
   WalletDetailedResponseSchema,
   AdaSpotPriceResponseSchema,
@@ -29,14 +30,18 @@ import {
 import { FiatCurrency, CryptoCurrency } from "../types/currency.js";
 
 export class VesprApiClient {
-  private readonly client: FetchApiClient;
-
-  constructor() {
-    this.client = new FetchApiClient({
+  private getClient(): FetchApiClient {
+    const apiKey = getCurrentApiKey() || config.apiKey;
+    if (!apiKey) {
+      throw new Error(
+        "VESPR API key is required. Provide it via X-API-Key header (HTTP) or VESPR_API_KEY environment variable (stdio/npx).",
+      );
+    }
+    return new FetchApiClient({
       baseUrl: config.apiBaseUrl,
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": config.apiKey,
+        "x-api-key": apiKey,
       },
       requestTimeoutMs: config.requestTimeoutMs,
       maxRetries: config.maxRetries,
@@ -45,7 +50,7 @@ export class VesprApiClient {
   }
 
   async fetchWalletDetailed(address: string): Promise<WalletDetailedResponse> {
-    return this.client.post({
+    return this.getClient().post({
       path: "/v7/wallet/detailed",
       body: { address },
       schema: WalletDetailedResponseSchema,
@@ -54,7 +59,7 @@ export class VesprApiClient {
   }
 
   async getAdaSpotPrice(currency: FiatCurrency): Promise<AdaSpotPriceResponse> {
-    return this.client.get({
+    return this.getClient().get({
       path: `/v5/ada/spot?currency=${encodeURIComponent(currency)}`,
       schema: AdaSpotPriceResponseSchema,
       context: `ada-spot(${currency})`,
@@ -62,7 +67,7 @@ export class VesprApiClient {
   }
 
   async fetchTransactionHistory(address: string, toBlock?: number): Promise<TransactionHistoryResponse> {
-    return this.client.post({
+    return this.getClient().post({
       path: "/v4/wallet/transactions",
       body: { address, maybe_to_block: toBlock },
       schema: TransactionHistoryResponseSchema,
@@ -71,7 +76,7 @@ export class VesprApiClient {
   }
 
   async fetchStakingInfo(address: string): Promise<StakingInfoResponse> {
-    return this.client.post({
+    return this.getClient().post({
       path: "/v5/wallet/rewards/staking/info",
       body: { address },
       schema: StakingInfoResponseSchema,
@@ -83,7 +88,7 @@ export class VesprApiClient {
     unit: string,
     currency: FiatCurrency | CryptoCurrency = FiatCurrency.USD,
   ): Promise<TokenInfoResponse> {
-    return this.client.get({
+    return this.getClient().get({
       path: `/v1/token/${encodeURIComponent(unit)}/info?currency=${encodeURIComponent(currency)}`,
       schema: TokenInfoResponseSchema,
       context: `token-info(${unit.slice(0, 20)}...)`,
@@ -99,7 +104,7 @@ export class VesprApiClient {
       period,
       currency,
     });
-    return this.client.get({
+    return this.getClient().get({
       path: `/v1/token/${encodeURIComponent(unit)}/chart?${params}`,
       schema: TokenChartResponseSchema,
       context: `token-chart(${unit.slice(0, 20)}...)`,
@@ -113,7 +118,7 @@ export class VesprApiClient {
     const params = new URLSearchParams({ currency });
     if (period) params.set("period", period);
 
-    return this.client.get({
+    return this.getClient().get({
       path: `/v1/tokens/explore/trending?${params}`,
       schema: TrendingTokensResponseSchema,
       context: `trending-tokens(${currency})`,
@@ -124,7 +129,7 @@ export class VesprApiClient {
     // Normalize handle - remove $ prefix if present
     const normalizedHandle = handle.startsWith("$") ? handle.slice(1) : handle;
 
-    return this.client.post({
+    return this.getClient().post({
       path: "/v4/asset/handle_owner",
       body: { handle: normalizedHandle.toLowerCase() },
       schema: AdaHandleOwnerResponseSchema,
@@ -133,7 +138,7 @@ export class VesprApiClient {
   }
 
   async fetchAssetMetadata(unit: string): Promise<AssetMetadataResponse> {
-    return this.client.get({
+    return this.getClient().get({
       path: `/v4/asset/${encodeURIComponent(unit)}/metadata`,
       schema: AssetMetadataResponseSchema,
       context: `asset-metadata(${unit.slice(0, 20)}...)`,
@@ -141,7 +146,7 @@ export class VesprApiClient {
   }
 
   async fetchAssetSummary(units: string[]): Promise<AssetSummaryResponse> {
-    return this.client.post({
+    return this.getClient().post({
       path: "/v4/asset/summary",
       body: { assets_unit: units },
       schema: AssetSummaryResponseSchema,
@@ -150,7 +155,7 @@ export class VesprApiClient {
   }
 
   async fetchPoolInfo(poolId: string): Promise<PoolInfoResponse> {
-    return this.client.post({
+    return this.getClient().post({
       path: "/v4/pool/info",
       body: { pool_id_bech_32: poolId },
       schema: PoolInfoResponseSchema,

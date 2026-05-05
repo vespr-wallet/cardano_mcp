@@ -47,6 +47,88 @@ const historyOutputSchema = z.object({
   transactions: z.array(transactionOutputSchema),
 });
 
+/**
+ * Handler for get_transaction_history tool
+ */
+export async function getTransactionHistoryHandler({
+  address,
+  to_block,
+}: {
+  address: string;
+  to_block?: number;
+}): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent?: z.infer<typeof historyOutputSchema>;
+  isError?: boolean;
+}> {
+  // Validate address
+  if (!isValidCardanoAddress(address)) {
+    return {
+      content: [{ type: "text" as const, text: "Error: Invalid Cardano address." }],
+      isError: true,
+    };
+  }
+
+  try {
+    const response = await VesprApiRepository.getTransactionHistory(address, to_block);
+
+    // Transform transactions for output
+    const transactions = response.transactions.map((tx) => {
+      const apiDirection = tx.direction as ApiDirection;
+      return {
+        txHash: tx.txHash,
+        timestamp: tx.timestamp,
+        blockHeight: tx.blockHeight,
+        direction: directionLabels[apiDirection] as "Received" | "Sent" | "Self Transfer" | "Multisig",
+        adaAmount: lovelaceToAda(tx.lovelace),
+        fee: lovelaceToAda(tx.txFee),
+        assetCount: tx.assets.length,
+        _apiDirection: apiDirection, // Keep for display formatting
+      };
+    });
+
+    // Build structured output (excluding internal _apiDirection)
+    const output = {
+      sinceBlock: response.sinceBlock,
+      toBlock: response.toBlock,
+      transactionCount: transactions.length,
+      transactions: transactions.map(({ _apiDirection, ...tx }) => tx),
+    };
+
+    // Format human-readable summary using direction symbols and amount prefixes
+    const summary = [
+      `Transaction History (blocks ${response.sinceBlock} - ${response.toBlock})`,
+      `Total: ${transactions.length} transaction(s)`,
+      "",
+      ...transactions
+        .slice(0, 10)
+        .map(
+          (tx) =>
+            `${directionSymbols[tx._apiDirection]} ${directionAmountPrefix[tx._apiDirection]}${tx.adaAmount} ADA | ${tx.direction} | ${tx.timestamp} | ${tx.assetCount} assets | ${tx.txHash.slice(0, 16)}...`,
+        ),
+      transactions.length > 10 ? `... and ${transactions.length - 10} more` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return {
+      content: [{ type: "text" as const, text: summary }],
+      structuredContent: output,
+    };
+  } catch (error) {
+    if (error instanceof VesprApiError) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerGetTransactionHistory(server: McpServer): void {
   server.registerTool(
     "get_transaction_history",
@@ -65,75 +147,6 @@ export function registerGetTransactionHistory(server: McpServer): void {
       },
       outputSchema: historyOutputSchema,
     },
-    async ({ address, to_block }) => {
-      // Validate address
-      if (!isValidCardanoAddress(address)) {
-        return {
-          content: [{ type: "text" as const, text: "Error: Invalid Cardano address." }],
-          isError: true,
-        };
-      }
-
-      try {
-        const response = await VesprApiRepository.getTransactionHistory(address, to_block);
-
-        // Transform transactions for output
-        const transactions = response.transactions.map((tx) => {
-          const apiDirection = tx.direction as ApiDirection;
-          return {
-            txHash: tx.txHash,
-            timestamp: tx.timestamp,
-            blockHeight: tx.blockHeight,
-            direction: directionLabels[apiDirection] as "Received" | "Sent" | "Self Transfer" | "Multisig",
-            adaAmount: lovelaceToAda(tx.lovelace),
-            fee: lovelaceToAda(tx.txFee),
-            assetCount: tx.assets.length,
-            _apiDirection: apiDirection, // Keep for display formatting
-          };
-        });
-
-        // Build structured output (excluding internal _apiDirection)
-        const output = {
-          sinceBlock: response.sinceBlock,
-          toBlock: response.toBlock,
-          transactionCount: transactions.length,
-          transactions: transactions.map(({ _apiDirection, ...tx }) => tx),
-        };
-
-        // Format human-readable summary using direction symbols and amount prefixes
-        const summary = [
-          `Transaction History (blocks ${response.sinceBlock} - ${response.toBlock})`,
-          `Total: ${transactions.length} transaction(s)`,
-          "",
-          ...transactions
-            .slice(0, 10)
-            .map(
-              (tx) =>
-                `${directionSymbols[tx._apiDirection]} ${directionAmountPrefix[tx._apiDirection]}${tx.adaAmount} ADA | ${tx.direction} | ${tx.timestamp} | ${tx.assetCount} assets | ${tx.txHash.slice(0, 16)}...`,
-            ),
-          transactions.length > 10 ? `... and ${transactions.length - 10} more` : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
-
-        return {
-          content: [{ type: "text" as const, text: summary }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        if (error instanceof VesprApiError) {
-          return {
-            content: [{ type: "text" as const, text: `Error: ${error.message}` }],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            { type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    getTransactionHistoryHandler,
   );
 }

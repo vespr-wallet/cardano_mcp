@@ -91,10 +91,7 @@ async function runTest<T>(name: string, fn: () => Promise<T>): Promise<TestResul
   }
 }
 
-async function runConcurrencyTest(
-  scenario: string,
-  tasks: Array<() => Promise<unknown>>,
-): Promise<ConcurrencyResult> {
+async function runConcurrencyTest(scenario: string, tasks: Array<() => Promise<unknown>>): Promise<ConcurrencyResult> {
   const wallStart = performance.now();
   const times: number[] = [];
   let successCount = 0;
@@ -175,9 +172,7 @@ async function runConcurrencyTests(): Promise<ConcurrencyResult[]> {
   results.push(
     await runConcurrencyTest(
       `ada_spot_price × ${CONCURRENT_REQUESTS} parallel (same key)`,
-      Array.from({ length: CONCURRENT_REQUESTS }, () => () =>
-        VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD),
-      ),
+      Array.from({ length: CONCURRENT_REQUESTS }, () => () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD)),
     ),
   );
 
@@ -185,8 +180,9 @@ async function runConcurrencyTests(): Promise<ConcurrencyResult[]> {
   results.push(
     await runConcurrencyTest(
       `get_token_info × ${CONCURRENT_REQUESTS} parallel (same key)`,
-      Array.from({ length: CONCURRENT_REQUESTS }, () => () =>
-        VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
+      Array.from(
+        { length: CONCURRENT_REQUESTS },
+        () => () => VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
       ),
     ),
   );
@@ -195,29 +191,27 @@ async function runConcurrencyTests(): Promise<ConcurrencyResult[]> {
   results.push(
     await runConcurrencyTest(
       `get_trending_tokens × ${CONCURRENT_REQUESTS} parallel (same key)`,
-      Array.from({ length: CONCURRENT_REQUESTS }, () => () =>
-        VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
+      Array.from(
+        { length: CONCURRENT_REQUESTS },
+        () => () => VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
       ),
     ),
   );
 
   // Scenario D: 20 parallel — all tools mixed (warm LRU cache, keys pre-loaded by prior scenarios)
   results.push(
-    await runConcurrencyTest(
-      `all tools mixed × ${CONCURRENT_REQUESTS} parallel (warm cache)`,
-      [
-        ...Array.from({ length: 5 }, () => () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD)),
-        ...Array.from({ length: 5 }, () => () =>
-          VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
-        ),
-        ...Array.from({ length: 5 }, () => () =>
-          VesprApiRepository.getTokenChart(TEST_CONFIG.tokenUnit, "24H", CryptoCurrency.ADA),
-        ),
-        ...Array.from({ length: 5 }, () => () =>
-          VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H"),
-        ),
-      ],
-    ),
+    await runConcurrencyTest(`all tools mixed × ${CONCURRENT_REQUESTS} parallel (warm cache)`, [
+      ...Array.from({ length: 5 }, () => () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD)),
+      ...Array.from(
+        { length: 5 },
+        () => () => VesprApiRepository.getTokenInfo(TEST_CONFIG.tokenUnit, FiatCurrency.USD),
+      ),
+      ...Array.from(
+        { length: 5 },
+        () => () => VesprApiRepository.getTokenChart(TEST_CONFIG.tokenUnit, "24H", CryptoCurrency.ADA),
+      ),
+      ...Array.from({ length: 5 }, () => () => VesprApiRepository.getTrendingTokens(FiatCurrency.USD, "1H")),
+    ]),
   );
 
   // Scenario E: 50 parallel high-load wave
@@ -280,7 +274,9 @@ function printReport(individual: TestResult[], concurrent: ConcurrencyResult[]):
     console.error(`  ${status}  ${r.scenario}`);
     console.error(`      Requests : ${r.successCount}/${r.totalRequests} (${passRate}%)`);
     console.error(`      Wall time: ${r.wallTimeMs}ms  |  Throughput: ${r.throughputRps} req/s`);
-    console.error(`      Latency  : p50=${r.p50Ms}ms  p95=${r.p95Ms}ms  p99=${r.p99Ms}ms  max=${r.maxResponseTimeMs}ms`);
+    console.error(
+      `      Latency  : p50=${r.p50Ms}ms  p95=${r.p95Ms}ms  p99=${r.p99Ms}ms  max=${r.maxResponseTimeMs}ms`,
+    );
   }
 
   const passed = individual.filter((r) => r.success && r.passedThreshold);

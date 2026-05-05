@@ -1,36 +1,63 @@
-# @vespr/cardano-mcp
+# Cardano MCP
 
-MCP (Model Context Protocol) server that enables AI agents like Claude to query Cardano wallet balances and ADA prices via the VESPR API.
+MCP (Model Context Protocol) server that lets AI assistants query Cardano wallet balances, token prices, staking info, and more — powered by the [VESPR API](https://vespr.xyz).
 
-## Features
+## Client Compatibility
 
-- **Query wallet balance** - Get portfolio value in any supported fiat/crypto currency
-- **Transaction history** - View wallet transaction history with details
-- **Token information** - Get detailed token info including price, market cap, and risk rating
-- **Token price charts** - OHLCV candlestick data for any time period
-- **Trending tokens** - Discover trending tokens by volume, buys, or sells
-- **Staking information** - Check staking status, pool info, and rewards
-- **ADA handle resolution** - Resolve $handles to wallet addresses
-- **Asset metadata** - Retrieve on-chain CIP-25/CIP-68 metadata
-- **Batch asset lookup** - Get summary info for multiple assets at once
-- **Pool information** - Query stake pool metrics and performance
-- **Currency support** - 160+ fiat currencies and crypto options
+There are two ways to connect to this MCP server, depending on which AI client you use:
 
-## Prerequisites
+| Client | Transport | How to connect |
+|--------|-----------|----------------|
+| **Claude Code** | Streamable HTTP | Use the hosted URL or a local HTTP server |
+| **Claude Desktop** | stdio (subprocess) | Use `npx` or a local `node` command |
+| Other MCP clients | Check client docs | HTTP if supported, otherwise stdio |
 
-- Node.js 18 or later
-- VESPR API key
-- Claude Desktop (or any MCP-compatible client)
+> **Why two transports?** Claude Desktop only supports stdio-based MCP servers (subprocess with stdin/stdout). Claude Code and newer MCP clients support the [MCP Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports) spec, which allows connecting to a remote server over HTTPS with no local installation needed.
 
-## Quick Start
+---
 
-### 1. Get a VESPR API Key
+## Option 1: Hosted MCP — no installation required
 
-Contact VESPR to obtain an API key for accessing the wallet and price APIs.
+The easiest way to get started. No API key needed, no software to install.
 
-### 2. Configure Claude Desktop
+**Supported clients:** Claude Code, any Streamable HTTP MCP client
 
-Add the MCP server to your Claude Desktop configuration:
+### Claude Code
+
+Add this to your project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "cardano": {
+      "type": "http",
+      "url": "https://mcp.vespr.xyz/mcp"
+    }
+  }
+}
+```
+
+Or add it globally via the CLI:
+
+```bash
+claude mcp add --transport http cardano https://mcp.vespr.xyz/mcp
+```
+
+That's it — no API key required when using the hosted server.
+
+---
+
+## Option 2: NPX — works with Claude Desktop
+
+Run the server as a local subprocess using `npx`. Requires a VESPR API key.
+
+### Get a VESPR API Key
+
+Contact [VESPR](https://vespr.xyz) to obtain an API key.
+
+### Claude Desktop
+
+Add this to your Claude Desktop config file:
 
 **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
@@ -50,162 +77,39 @@ Add the MCP server to your Claude Desktop configuration:
 }
 ```
 
-### 3. Restart Claude Desktop
+Restart Claude Desktop after saving the config.
 
-After updating the config, restart Claude Desktop for changes to take effect.
+---
 
-## Environment Variables
+## Option 3: Self-hosted
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `VESPR_API_KEY` | **Yes** | - | Your VESPR API key |
-| `VESPR_API_URL` | No | `https://api.vespr.xyz` | VESPR API endpoint |
-| `REQUEST_TIMEOUT_MS` | No | `30000` | Request timeout in milliseconds |
-| `MAX_RETRIES` | No | `3` | Maximum retry attempts |
-| `RETRY_BASE_DELAY_MS` | No | `1000` | Base delay for exponential backoff |
+Run your own instance — useful if you want to customize the server or use it in a private environment.
 
-## Usage
-
-Once configured, you can ask Claude questions like:
-
-- "What's the balance of addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv in USD?"
-- "Show me the transaction history for this wallet"
-- "What's the price and market cap of SNEK token?"
-- "Show me the price chart for VESPR token over the last week"
-- "What tokens are trending right now?"
-- "Is this wallet staking? What pool is it delegated to?"
-- "What wallet address does $vespr resolve to?"
-- "What are the best performing stake pools?"
-- "What currencies are supported?"
-
-## Available Tools
-
-| Tool | Description |
-|------|-------------|
-| `get_wallet_balance` | Query wallet balance with ADA, tokens, and portfolio value |
-| `get_transaction_history` | Query wallet transaction history with amounts and directions |
-| `get_token_info` | Get detailed token information (price, market cap, supply, risk) |
-| `get_token_chart` | Get OHLCV price chart data for a token |
-| `get_trending_tokens` | Discover trending tokens by volume or trading activity |
-| `get_staking_info` | Query wallet staking status, pool info, and rewards |
-| `resolve_ada_handle` | Resolve an ADA handle ($handle) to a wallet address |
-| `get_asset_metadata` | Get on-chain CIP-25/CIP-68 metadata for an asset |
-| `get_asset_summary` | Batch lookup for multiple assets with categorization |
-| `get_pool_info` | Get stake pool information and performance metrics |
-| `get_supported_currencies` | List all supported fiat and crypto currencies |
-
-### get_wallet_balance
-
-Query Cardano wallet balance including ADA and native tokens with values in your chosen currency.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `address` | string | Yes | Cardano wallet address (bech32 format, addr1...) |
-| `currency` | string | No | Currency for values (default: USD) |
-
-### get_transaction_history
-
-Query transaction history for a Cardano wallet address.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `address` | string | Yes | Cardano wallet address (bech32 format, addr1...) |
-| `to_block` | number | No | Filter transactions up to this block height |
-
-### get_token_info
-
-Query detailed information about a Cardano native token including price, market cap, supply, and risk rating.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `unit` | string | Yes | Token unit identifier (policy ID + hex asset name) |
-| `currency` | string | No | Currency for price display (default: USD) |
-
-### get_token_chart
-
-Query OHLCV (Open, High, Low, Close, Volume) price chart data for a token.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `unit` | string | Yes | Token unit identifier (policy ID + hex asset name) |
-| `period` | string | No | Chart period: 1H, 24H, 1W, 1M, 3M, 1Y, ALL (default: 24H) |
-| `currency` | string | No | Currency for price display (default: ADA) |
-
-### get_trending_tokens
-
-Discover trending Cardano native tokens based on trading activity.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `currency` | string | No | Currency for price display (default: USD) |
-| `sort` | string | No | Sort by: volume, buys, sells, unique_buyers, unique_sellers |
-| `period` | string | No | Time period: 1M, 5M, 30M, 1H, 4H, 1D |
-| `limit` | number | No | Number of tokens to return (default: 10, max: 100) |
-
-### get_staking_info
-
-Query staking status and rewards for a Cardano wallet address.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `address` | string | Yes | Cardano wallet address (bech32 format, addr1...) |
-
-### resolve_ada_handle
-
-Resolve an ADA handle to its owner's wallet address.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `handle` | string | Yes | ADA handle (with or without $ prefix, e.g., 'myhandle' or '$myhandle') |
-
-### get_asset_metadata
-
-Retrieve on-chain metadata (CIP-25/CIP-68) for a Cardano native asset.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `unit` | string | Yes | Asset unit identifier (policy ID + hex-encoded asset name) |
-
-### get_asset_summary
-
-Retrieve summary information for multiple Cardano native assets in a single batch request.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `units` | string[] | Yes | Array of asset unit identifiers (max 100 per request) |
-
-### get_pool_info
-
-Query information about a Cardano stake pool.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `pool_id` | string | Yes | Cardano stake pool ID (bech32 format, pool1...) |
-
-### get_supported_currencies
-
-Get the list of supported fiat and crypto currencies. No input parameters required.
-
-## Local Development
+### Docker (recommended)
 
 ```bash
-# Clone the repository
 git clone https://github.com/vespr-wallet/cardano_mcp.git
 cd cardano_mcp
-
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Run locally
-VESPR_API_KEY=your-key node dist/index.js
+VESPR_API_KEY=your-api-key docker compose up
 ```
 
-### Local Claude Desktop Config
+The server starts on `http://localhost:3000`. Connect via Streamable HTTP:
 
-For local development, point to your local build:
+```json
+{
+  "mcpServers": {
+    "cardano": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp",
+      "headers": {
+        "x-api-key": "${VESPR_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Or via stdio for Claude Desktop:
 
 ```json
 {
@@ -221,11 +125,183 @@ For local development, point to your local build:
 }
 ```
 
-### Running Tests
+### From source
 
 ```bash
-npm test              # Run all tests
-npm run test:coverage # Run with coverage report
+git clone https://github.com/vespr-wallet/cardano_mcp.git
+cd cardano_mcp
+npm install
+npm run build
+VESPR_API_KEY=your-key node dist/index.js
+```
+
+---
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `VESPR_API_KEY` | Yes (self-hosted/npx) | — | Your VESPR API key. Not required when using `mcp.vespr.xyz`. |
+| `SERVER_MODE` | No | `stdio` | Transport mode: `stdio`, `http`, or `both` |
+| `HTTP_PORT` | No | `3000` | HTTP server port |
+| `HTTP_HOST` | No | `0.0.0.0` | HTTP server host |
+| `VESPR_API_URL` | No | `https://api.vespr.xyz` | VESPR API base URL |
+| `REQUEST_TIMEOUT_MS` | No | `30000` | Request timeout in milliseconds |
+| `MAX_RETRIES` | No | `3` | Maximum retry attempts |
+| `RETRY_BASE_DELAY_MS` | No | `1000` | Base delay for exponential backoff |
+| `RATE_LIMIT_PER_MINUTE` | No | `10` | Max requests per minute per IP (HTTP mode) |
+| `RATE_LIMIT_PER_DAY` | No | `250` | Max requests per day per IP (HTTP mode) |
+
+---
+
+## What you can ask
+
+Once connected, ask your AI assistant questions like:
+
+- "What's the balance of addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv in USD?"
+- "Show me the transaction history for this wallet"
+- "What's the price and market cap of SNEK token?"
+- "Show me the VESPR token price chart for the last week"
+- "What tokens are trending right now?"
+- "Is this wallet staking? What pool is it in and how much has it earned?"
+- "What wallet address does $vespr resolve to?"
+- "What are the best performing stake pools?"
+- "What currencies are supported?"
+
+---
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_wallet_balance` | Wallet balance — ADA, tokens, and portfolio value in any currency |
+| `get_transaction_history` | Transaction history with amounts and directions |
+| `get_token_info` | Token price, market cap, supply, and risk rating |
+| `get_token_chart` | OHLCV candlestick price data for any time period |
+| `get_trending_tokens` | Trending tokens by volume, buys, or sells |
+| `get_staking_info` | Staking status, pool info, and rewards |
+| `resolve_ada_handle` | Resolve a $handle to a wallet address |
+| `get_asset_metadata` | On-chain CIP-25/CIP-68 metadata for any asset |
+| `get_asset_summary` | Batch lookup for multiple assets |
+| `get_pool_info` | Stake pool metrics and performance |
+| `get_supported_currencies` | List of supported fiat and crypto currencies |
+
+### Tool parameters
+
+<details>
+<summary>get_wallet_balance</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
+| `currency` | string | No | Currency for values (default: USD) |
+
+</details>
+
+<details>
+<summary>get_transaction_history</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
+| `to_block` | number | No | Filter transactions up to this block height |
+
+</details>
+
+<details>
+<summary>get_token_info</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `unit` | string | Yes | Token unit (policy ID + hex asset name) |
+| `currency` | string | No | Currency for price display (default: USD) |
+
+</details>
+
+<details>
+<summary>get_token_chart</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `unit` | string | Yes | Token unit (policy ID + hex asset name) |
+| `period` | string | No | `1H`, `24H`, `1W`, `1M`, `3M`, `1Y`, `ALL` (default: 24H) |
+| `currency` | string | No | Currency for price display (default: ADA) |
+
+</details>
+
+<details>
+<summary>get_trending_tokens</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `currency` | string | No | Currency for price display (default: USD) |
+| `sort` | string | No | `volume`, `buys`, `sells`, `unique_buyers`, `unique_sellers` |
+| `period` | string | No | `1M`, `5M`, `30M`, `1H`, `4H`, `1D` |
+| `limit` | number | No | Number of results (default: 10, max: 100) |
+
+</details>
+
+<details>
+<summary>get_staking_info</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
+
+</details>
+
+<details>
+<summary>resolve_ada_handle</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `handle` | string | Yes | ADA handle with or without $ prefix (e.g. `vespr` or `$vespr`) |
+
+</details>
+
+<details>
+<summary>get_asset_metadata</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `unit` | string | Yes | Asset unit (policy ID + hex-encoded asset name) |
+
+</details>
+
+<details>
+<summary>get_asset_summary</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `units` | string[] | Yes | Array of asset units (max 100 per request) |
+
+</details>
+
+<details>
+<summary>get_pool_info</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `pool_id` | string | Yes | Stake pool ID (bech32, pool1...) |
+
+</details>
+
+<details>
+<summary>get_supported_currencies</summary>
+
+No parameters.
+
+</details>
+
+---
+
+## Development
+
+```bash
+npm install
+npm run build        # compile TypeScript
+npm test             # run tests
+npm run test:coverage  # tests with coverage report
 ```
 
 ## License

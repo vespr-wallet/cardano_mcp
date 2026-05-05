@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+dist
+coverage
+.env
+.DS_Store
+.git
+.gitignore
+*.md
+.omc/
+.plans/
+scripts/
+docs/
+.github/
+planning/

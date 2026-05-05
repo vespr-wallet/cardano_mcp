@@ -10,6 +10,63 @@ const handleOutputSchema = z.object({
   found: z.boolean(),
 });
 
+/**
+ * Handler for resolve_ada_handle tool
+ */
+export async function resolveAdaHandleHandler({ handle }: { handle: string }): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent?: z.infer<typeof handleOutputSchema>;
+  isError?: boolean;
+}> {
+  // Validate input
+  if (!handle || handle.trim() === "" || handle === "$") {
+    return {
+      content: [{ type: "text" as const, text: "Error: Handle cannot be empty." }],
+      isError: true,
+    };
+  }
+
+  try {
+    const trimmedHandle = handle.trim();
+    const response = await VesprApiRepository.resolveAdaHandle(trimmedHandle);
+
+    // Normalize handle for display (without $)
+    const normalizedHandle = (trimmedHandle.startsWith("$") ? trimmedHandle.slice(1) : trimmedHandle).toLowerCase();
+
+    const output = {
+      handle: normalizedHandle,
+      owner: response.owner,
+      found: response.owner !== null,
+    };
+
+    // Format human-readable output
+    let summary: string;
+    if (response.owner) {
+      summary = [`Handle: $${normalizedHandle}`, `Owner: ${response.owner}`].join("\n");
+    } else {
+      summary = [`Handle: $${normalizedHandle}`, `Status: Not found (handle does not exist or is not registered)`].join(
+        "\n",
+      );
+    }
+
+    return {
+      content: [{ type: "text" as const, text: summary }],
+      structuredContent: output,
+    };
+  } catch (error) {
+    if (error instanceof VesprApiError) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerResolveAdaHandle(server: McpServer): void {
   server.registerTool(
     "resolve_ada_handle",
@@ -22,58 +79,6 @@ export function registerResolveAdaHandle(server: McpServer): void {
       },
       outputSchema: handleOutputSchema,
     },
-    async ({ handle }) => {
-      const trimmedHandle = handle?.trim() ?? "";
-
-      // Validate input
-      if (!trimmedHandle || trimmedHandle === "$") {
-        return {
-          content: [{ type: "text" as const, text: "Error: Handle cannot be empty." }],
-          isError: true,
-        };
-      }
-
-      try {
-        const response = await VesprApiRepository.resolveAdaHandle(trimmedHandle);
-
-        // Normalize handle for display (without $)
-        const normalizedHandle = (trimmedHandle.startsWith("$") ? trimmedHandle.slice(1) : trimmedHandle).toLowerCase();
-
-        const output = {
-          handle: normalizedHandle,
-          owner: response.owner,
-          found: response.owner !== null,
-        };
-
-        // Format human-readable output
-        let summary: string;
-        if (response.owner) {
-          summary = [`Handle: $${normalizedHandle}`, `Owner: ${response.owner}`].join("\n");
-        } else {
-          summary = [
-            `Handle: $${normalizedHandle}`,
-            `Status: Not found (handle does not exist or is not registered)`,
-          ].join("\n");
-        }
-
-        return {
-          content: [{ type: "text" as const, text: summary }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        if (error instanceof VesprApiError) {
-          return {
-            content: [{ type: "text" as const, text: `Error: ${error.message}` }],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            { type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    resolveAdaHandleHandler,
   );
 }

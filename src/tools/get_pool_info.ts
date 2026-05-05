@@ -117,6 +117,49 @@ function transformResponse(response: PoolInfoResponse): z.infer<typeof poolInfoO
   };
 }
 
+/**
+ * Handler for get_pool_info tool
+ */
+export async function getPoolInfoHandler({ pool_id, poolId }: { pool_id?: string; poolId?: string }): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent?: z.infer<typeof poolInfoOutputSchema>;
+  isError?: boolean;
+}> {
+  // Support both pool_id and poolId parameter names
+  const effectivePoolId = pool_id ?? poolId;
+
+  // Validate pool ID
+  if (!effectivePoolId || !isValidPoolId(effectivePoolId)) {
+    return {
+      content: [{ type: "text" as const, text: "Error: Invalid pool ID. Pool IDs must start with 'pool1' prefix." }],
+      isError: true,
+    };
+  }
+
+  try {
+    const response = await VesprApiRepository.getPoolInfo(effectivePoolId.trim());
+
+    const output = transformResponse(response);
+    const summary = formatHumanReadable(response);
+
+    return {
+      content: [{ type: "text" as const, text: summary }],
+      structuredContent: output,
+    };
+  } catch (error) {
+    if (error instanceof VesprApiError) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerGetPoolInfo(server: McpServer): void {
   server.registerTool(
     "get_pool_info",
@@ -129,41 +172,6 @@ export function registerGetPoolInfo(server: McpServer): void {
       },
       outputSchema: poolInfoOutputSchema,
     },
-    async ({ pool_id }) => {
-      // Validate pool ID
-      if (!isValidPoolId(pool_id)) {
-        return {
-          content: [
-            { type: "text" as const, text: "Error: Invalid pool ID. Pool IDs must start with 'pool1' prefix." },
-          ],
-          isError: true,
-        };
-      }
-
-      try {
-        const response = await VesprApiRepository.getPoolInfo(pool_id.trim());
-
-        const output = transformResponse(response);
-        const summary = formatHumanReadable(response);
-
-        return {
-          content: [{ type: "text" as const, text: summary }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        if (error instanceof VesprApiError) {
-          return {
-            content: [{ type: "text" as const, text: `Error: ${error.message}` }],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            { type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    getPoolInfoHandler,
   );
 }
