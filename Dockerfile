@@ -4,7 +4,7 @@ RUN npm install -g npm@11.7.0
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package*.json .npmrc ./
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     npm ci --ignore-scripts
 
@@ -18,7 +18,7 @@ RUN npm install -g npm@11.7.0
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package*.json .npmrc ./
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
     npm ci --omit=dev --ignore-scripts
 
