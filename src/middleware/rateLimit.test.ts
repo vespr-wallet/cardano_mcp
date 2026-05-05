@@ -32,11 +32,20 @@ describe("RateLimiter", () => {
     });
 
     it("blocks requests over per-day limit", () => {
+      // Fill up minute window (3 requests)
       limiter.checkLimit("1.2.3.4");
       limiter.checkLimit("1.2.3.4");
       limiter.checkLimit("1.2.3.4");
+
+      // Advance past the minute window so per-minute counter resets
+      jest.advanceTimersByTime(61_000);
+
+      // 2 more requests to reach the daily limit of 5
       limiter.checkLimit("1.2.3.4");
       limiter.checkLimit("1.2.3.4");
+
+      // Advance past the minute window again so per-minute doesn't block first
+      jest.advanceTimersByTime(61_000);
 
       const result = limiter.checkLimit("1.2.3.4");
       expect(result).not.toBeNull();

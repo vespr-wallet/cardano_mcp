@@ -61,7 +61,13 @@ export async function getTokenInfoHandler({ unit, currency }: { unit: string; cu
     };
   }
 
-  // Use default currency if not specified
+  if (currency && !SUPPORTED_CURRENCIES.includes(currency as SupportedCurrency)) {
+    return {
+      content: [{ type: "text" as const, text: "Error: Invalid currency. Must be one of the supported currencies." }],
+      isError: true,
+    };
+  }
+
   const effectiveCurrency = (currency as SupportedCurrency) ?? FiatCurrency.USD;
 
   try {

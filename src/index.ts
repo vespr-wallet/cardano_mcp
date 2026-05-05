@@ -32,12 +32,13 @@ async function startStdioTransport(server: McpServer): Promise<void> {
   logger.info("server_started", { transport: "stdio", version: VERSION });
 }
 
+let httpServer: import("fastify").FastifyInstance | undefined;
+
 /**
  * Start HTTP transport for web clients
  */
 async function startHttpTransport(): Promise<void> {
-  await startServer();
-  // HTTP server logs its own startup message
+  httpServer = await startServer();
 }
 
 /**
@@ -58,16 +59,18 @@ async function main(): Promise<void> {
   }
 }
 
-// Handle graceful shutdown
-process.on("SIGINT", () => {
-  logger.info("server_shutdown", { signal: "SIGINT" });
-  process.exit(0);
-});
+function shutdown(signal: string): void {
+  logger.info("server_shutdown", { signal });
+  if (httpServer) {
+    httpServer.close().finally(() => process.exit(0));
+  } else {
+    process.exit(0);
+  }
+}
 
-process.on("SIGTERM", () => {
-  logger.info("server_shutdown", { signal: "SIGTERM" });
-  process.exit(0);
-});
+// Handle graceful shutdown
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 // Start the server
 main().catch((error) => {

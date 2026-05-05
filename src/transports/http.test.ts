@@ -159,10 +159,7 @@ describe("registerHttpRoutes", () => {
     registeredRoutes = new Map();
 
     // Clear global registry before each test
-    const tools = httpToolRegistry.getAllTools();
-    tools.forEach((tool) => {
-      httpToolRegistry["tools"].delete(tool.name);
-    });
+    httpToolRegistry.clear();
 
     mockServer = {
       get: jest.fn((path: string, handler: Function) => {

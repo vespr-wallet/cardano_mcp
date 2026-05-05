@@ -6,9 +6,6 @@ import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { CryptoCurrency, SupportedCurrency, SUPPORTED_CURRENCIES } from "../types/currency.js";
 import { ChartPeriod, ChartPeriodSchema, TokenChartIntervalSchema } from "../types/api/schemas.js";
 
-// Valid chart periods
-const CHART_PERIODS = ["1H", "24H", "1W", "1M", "3M", "1Y", "ALL"] as const;
-
 // Output schema for candle data
 const candleOutputSchema = z.object({
   timestamp: z.number(),

@@ -12,7 +12,8 @@ import { registerGetTransactionHistory, getTransactionHistoryHandler } from "./g
 import { registerGetTrendingTokens, getTrendingTokensHandler } from "./get_trending_tokens.js";
 import { registerGetWalletBalance, getWalletBalanceHandler } from "./get_wallet_balance.js";
 import { registerResolveAdaHandle, resolveAdaHandleHandler } from "./resolve_ada_handle.js";
-import { SUPPORTED_CURRENCIES, FiatCurrency } from "../types/currency.js";
+import { SUPPORTED_CURRENCIES, FiatCurrency, CryptoCurrency } from "../types/currency.js";
+import { ChartPeriodSchema, TrendingPeriodSchema } from "../types/api/schemas.js";
 
 /**
  * Register tools with MCP server (for STDIO transport)
@@ -66,18 +67,12 @@ export function registerHttpTools(): void {
   httpToolRegistry.registerTool({
     name: "get_transaction_history",
     title: "Get Transaction History",
-    description: "Query Cardano wallet transaction history with pagination support",
+    description: "Query Cardano wallet transaction history",
     inputSchema: z.object({
       address: z.string().describe("Cardano wallet address (bech32 format, addr1...)"),
-      count: z
-        .preprocess(
-          (val) => (val === null || val === "" ? undefined : val),
-          z.number().int().min(1).max(100).default(20),
-        )
-        .describe("Number of transactions to return (1-100)"),
-      page: z
-        .preprocess((val) => (val === null || val === "" ? undefined : val), z.number().int().min(1).default(1))
-        .describe("Page number for pagination"),
+      to_block: z
+        .preprocess((val) => (val === null || val === "" ? undefined : val), z.number().int().positive().optional())
+        .describe("Optional: filter transactions up to this block height"),
     }),
     handler: getTransactionHistoryHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
   });
@@ -123,12 +118,18 @@ export function registerHttpTools(): void {
     description: "Query price chart data for a Cardano native token over a specified time range",
     inputSchema: z.object({
       unit: z.string().describe("Token unit (policy ID + asset name hex)"),
-      range: z
+      period: z
         .preprocess(
           (val) => (val === null || val === "" ? undefined : val),
-          z.enum(["1h", "4h", "12h", "1d", "1w", "1m", "6m", "1y", "all"]).default("1d"),
+          ChartPeriodSchema.optional().default("24H"),
         )
-        .describe("Time range for chart data"),
+        .describe("Chart period: 1H, 24H, 1W, 1M, 3M, 1Y, ALL (default: 24H)"),
+      currency: z
+        .preprocess(
+          (val) => (val === null || val === "" ? undefined : val),
+          z.enum(SUPPORTED_CURRENCIES).optional().default(CryptoCurrency.ADA),
+        )
+        .describe("Currency for price display (default: ADA)"),
     }),
     handler: getTokenChartHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
   });
@@ -151,6 +152,9 @@ export function registerHttpTools(): void {
           z.enum(SUPPORTED_CURRENCIES).default(FiatCurrency.USD),
         )
         .describe("The currency to use for the displayed data"),
+      period: z
+        .preprocess((val) => (val === null || val === "" ? undefined : val), TrendingPeriodSchema.optional())
+        .describe("Time period: 1M (1 min), 5M, 30M, 1H, 4H, 1D. Default varies by API."),
     }),
     handler: getTrendingTokensHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
   });

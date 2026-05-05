@@ -31,9 +31,10 @@ export function createServer(): FastifyInstance {
 async function configureServer(server: FastifyInstance): Promise<void> {
   // CORS support for cross-origin requests
   await server.register(cors, {
-    origin: true, // Allow all origins in development, configure for production
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: true,
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-api-key", "mcp-session-id"],
+    exposedHeaders: ["mcp-session-id"],
   });
 
   // Sensible defaults (error handling, 404 handling, etc.)
@@ -67,7 +68,7 @@ async function configureServer(server: FastifyInstance): Promise<void> {
     maxRequestsPerDay: config.rateLimitPerDay,
   });
   server.addHook("onRequest", async (request, reply) => {
-    if (request.url.startsWith("/mcp/")) {
+    if (request.url.startsWith("/mcp")) {
       await rateLimitHook(request, reply);
     }
   });

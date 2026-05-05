@@ -4,9 +4,9 @@ RUN npm install -g npm@11.7.0
 
 WORKDIR /app
 
-COPY package*.json .npmrc ./
-ARG NPM_TOKEN
-RUN npm ci --ignore-scripts && rm -f .npmrc
+COPY package*.json ./
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
+    npm ci --ignore-scripts
 
 COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
@@ -18,9 +18,9 @@ RUN npm install -g npm@11.7.0
 
 WORKDIR /app
 
-COPY package*.json .npmrc ./
-ARG NPM_TOKEN
-RUN npm ci --omit=dev --ignore-scripts && rm -f .npmrc
+COPY package*.json ./
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
+    npm ci --omit=dev --ignore-scripts
 
 COPY --from=builder /app/dist ./dist
 

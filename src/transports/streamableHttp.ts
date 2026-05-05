@@ -6,7 +6,7 @@ import { registerTools } from "../tools/index.js";
 import { apiKeyContext } from "../utils/apiKeyContext.js";
 import { logger } from "../utils/logger.js";
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.0";
 
 interface Session {
   transport: StreamableHTTPServerTransport;
@@ -53,10 +53,6 @@ function getOrCreateSession(
   });
 
   const session = { transport, apiKey };
-
-  if (transport.sessionId) {
-    sessions.set(transport.sessionId, session);
-  }
 
   return { session, isNew: true };
 }

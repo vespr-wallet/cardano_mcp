@@ -20,6 +20,7 @@ export interface HttpToolDefinition {
 export interface HttpToolResult {
   content: Array<{ type: string; text: string }>;
   structuredContent?: Record<string, unknown>;
+  isError?: boolean;
 }
 
 /**
@@ -49,6 +50,13 @@ export class HttpToolRegistry {
    */
   getAllTools(): HttpToolDefinition[] {
     return Array.from(this.tools.values());
+  }
+
+  /**
+   * Remove all registered tools (useful for test teardown)
+   */
+  clear(): void {
+    this.tools.clear();
   }
 
   /**
@@ -205,7 +213,15 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
         hasStructuredContent: !!result.structuredContent,
       });
 
-      // Return structured content if available, otherwise content array
+      if (result.isError) {
+        return reply.status(502).send({
+          error: {
+            code: "TOOL_ERROR",
+            message: result.content.map((c) => c.text).join("\n"),
+          },
+        });
+      }
+
       return reply.send({
         result: result.structuredContent ?? result.content,
       });

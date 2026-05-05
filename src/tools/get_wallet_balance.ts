@@ -119,7 +119,7 @@ export async function getWalletBalanceHandler({ address, currency }: { address: 
       content: [
         {
           type: "text" as const,
-          text: textSummary + "\n\n" + JSON.stringify(output, null, 2),
+          text: textSummary,
         },
       ],
       structuredContent: output,
