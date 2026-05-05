@@ -1,12 +1,13 @@
-import Fastify, { FastifyInstance } from "fastify";
+import Fastify, { FastifyInstance, FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
+import fastifyRateLimit from "@fastify/rate-limit";
 import { config } from "./config.js";
 import { logger } from "./utils/logger.js";
 import { registerHttpRoutes } from "./transports/http.js";
 import { registerStreamableHttpRoutes } from "./transports/streamableHttp.js";
 import { registerHttpTools } from "./tools/index.js";
-import { createRateLimitHook } from "./middleware/rateLimit.js";
+import { createDualWindowStore } from "./middleware/rateLimit.js";
 
 let serverStartTime: number | null = null;
 
@@ -81,15 +82,28 @@ async function configureServer(server: FastifyInstance): Promise<void> {
   // Register HTTP tools with the registry
   registerHttpTools();
 
-  const rateLimitHook = createRateLimitHook({
-    maxRequestsPerMinute: config.rateLimitPerMinute,
-    maxRequestsPerDay: config.rateLimitPerDay,
-    trustedProxies: config.trustedProxies,
-  });
-  server.addHook("onRequest", async (request, reply) => {
-    if (request.url.startsWith("/mcp")) {
-      await rateLimitHook(request, reply);
-    }
+  const rateLimitKeyGenerator = (request: FastifyRequest): string =>
+    (request.headers["x-real-ip"] as string | undefined) ||
+    (request.headers["x-client-ip"] as string | undefined) ||
+    (request.headers["cf-connecting-ip"] as string | undefined) ||
+    (request.headers["do-connecting-ip"] as string | undefined) ||
+    (typeof request.headers["x-forwarded-for"] === "string"
+      ? request.headers["x-forwarded-for"].split(",")[0].trim()
+      : "") ||
+    request.ip;
+
+  await server.register(fastifyRateLimit, {
+    max: config.rateLimitPerMinute,
+    timeWindow: "1 minute",
+    hook: "preValidation",
+    store: createDualWindowStore(config.rateLimitPerMinute, config.rateLimitPerDay),
+    allowList: (request) => !request.url.startsWith("/mcp"),
+    keyGenerator: rateLimitKeyGenerator,
+    errorResponseBuilder: (_request, context) => ({
+      statusCode: 429,
+      error: "Too Many Requests",
+      message: `Rate limit exceeded. Retry in ${context.after}.`,
+    }),
   });
 
   await registerHttpRoutes(server);

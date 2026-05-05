@@ -51,9 +51,6 @@ export const config = {
   /** Rate limit: max requests per day per IP */
   rateLimitPerDay: Number(process.env.RATE_LIMIT_PER_DAY) || 250,
 
-  /** Trusted proxy IPs/prefixes for x-forwarded-for (comma-separated, e.g. "10.0.0.,172.17.") */
-  trustedProxies: (process.env.TRUSTED_PROXIES ?? "").split(",").filter(Boolean),
-
   /** Allowed CORS origins (comma-separated). Empty = deny all cross-origin requests */
   allowedOrigins: (process.env.ALLOWED_ORIGINS ?? "").split(",").filter(Boolean),
 
