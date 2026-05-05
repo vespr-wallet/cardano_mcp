@@ -7,10 +7,12 @@ import { apiKeyContext } from "../utils/apiKeyContext.js";
 import { logger } from "../utils/logger.js";
 
 const VERSION = "0.1.0";
+const SESSION_CLEANUP_INTERVAL_MS = 60_000;
 
 interface Session {
   transport: StreamableHTTPServerTransport;
   apiKey?: string;
+  lastActiveAt: number;
 }
 
 const sessions = new Map<string, Session>();
@@ -26,7 +28,7 @@ function getOrCreateSession(
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (sid: string) => {
-      sessions.set(sid, { transport, apiKey });
+      sessions.set(sid, { transport, apiKey, lastActiveAt: Date.now() });
       logger.info("mcp_session_created", { sessionId: sid });
     },
   });
@@ -52,12 +54,27 @@ function getOrCreateSession(
     });
   });
 
-  const session = { transport, apiKey };
+  const session: Session = { transport, apiKey, lastActiveAt: Date.now() };
 
   return { session, isNew: true };
 }
 
-export async function registerStreamableHttpRoutes(server: FastifyInstance): Promise<void> {
+export async function registerStreamableHttpRoutes(server: FastifyInstance, sessionTtlMs: number): Promise<void> {
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [sid, session] of sessions.entries()) {
+      if (now - session.lastActiveAt > sessionTtlMs) {
+        session.transport.close().catch(() => {});
+        sessions.delete(sid);
+        logger.info("mcp_session_expired", { sessionId: sid });
+      }
+    }
+  }, SESSION_CLEANUP_INTERVAL_MS);
+
+  server.addHook("onClose", async () => {
+    clearInterval(cleanupInterval);
+  });
+
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
     const apiKey = (request.headers["x-api-key"] as string) || undefined;
@@ -70,6 +87,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance): Pro
       }
 
       const { session } = getOrCreateSession(sessionId, apiKey);
+      session.lastActiveAt = Date.now();
 
       reply.hijack();
 
@@ -100,6 +118,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance): Pro
     }
 
     const session = sessions.get(sessionId)!;
+    session.lastActiveAt = Date.now();
 
     try {
       reply.hijack();

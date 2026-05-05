@@ -29,9 +29,19 @@ export function createServer(): FastifyInstance {
  * Register plugins and configure the server
  */
 async function configureServer(server: FastifyInstance): Promise<void> {
-  // CORS support for cross-origin requests
+  // CORS support — restrict to configured origins; deny all cross-origin if none are set
+  const allowedOrigins = config.allowedOrigins;
   await server.register(cors, {
-    origin: true,
+    origin:
+      allowedOrigins.length > 0
+        ? (origin: string | undefined, cb: (err: Error | null, allow: boolean) => void) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+              cb(null, true);
+            } else {
+              cb(new Error("Not allowed by CORS"), false);
+            }
+          }
+        : false,
     methods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-api-key", "mcp-session-id"],
     exposedHeaders: ["mcp-session-id"],
@@ -66,6 +76,7 @@ async function configureServer(server: FastifyInstance): Promise<void> {
   const rateLimitHook = createRateLimitHook({
     maxRequestsPerMinute: config.rateLimitPerMinute,
     maxRequestsPerDay: config.rateLimitPerDay,
+    trustedProxies: config.trustedProxies,
   });
   server.addHook("onRequest", async (request, reply) => {
     if (request.url.startsWith("/mcp")) {
@@ -74,7 +85,7 @@ async function configureServer(server: FastifyInstance): Promise<void> {
   });
 
   await registerHttpRoutes(server);
-  await registerStreamableHttpRoutes(server);
+  await registerStreamableHttpRoutes(server, config.sessionTtlMs);
 }
 
 /**

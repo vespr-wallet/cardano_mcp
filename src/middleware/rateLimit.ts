@@ -9,6 +9,7 @@ interface RateLimitEntry {
 interface RateLimitConfig {
   maxRequestsPerMinute: number;
   maxRequestsPerDay: number;
+  trustedProxies?: string[];
 }
 
 const MINUTE_WINDOW_MS = 60_000;
@@ -90,12 +91,13 @@ export class RateLimiter {
   }
 }
 
-function getClientIp(request: FastifyRequest): string {
-  const forwarded = request.headers["x-forwarded-for"];
-  if (typeof forwarded === "string") {
-    return forwarded.split(",")[0].trim();
+function getClientIp(request: FastifyRequest, trustedProxies: string[]): string {
+  if (trustedProxies.length > 0 && trustedProxies.some((proxy) => request.ip.startsWith(proxy))) {
+    const forwarded = request.headers["x-forwarded-for"];
+    if (typeof forwarded === "string") {
+      return forwarded.split(",")[0].trim();
+    }
   }
-
   return request.ip;
 }
 
@@ -108,7 +110,7 @@ export function createRateLimitHook(config: RateLimitConfig) {
   process.on("SIGTERM", () => clearInterval(cleanupInterval));
 
   return async function rateLimitHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const ip = getClientIp(request);
+    const ip = getClientIp(request, config.trustedProxies ?? []);
     const result = limiter.checkLimit(ip);
     const remaining = limiter.getRemaining(ip);
 
