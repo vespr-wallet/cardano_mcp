@@ -2,6 +2,35 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { SUPPORTED_FIAT_CURRENCIES, SUPPORTED_CRYPTO_CURRENCIES, SUPPORTED_CURRENCIES } from "../types/currency.js";
 
+/**
+ * Handler for get_supported_currencies tool
+ */
+export async function getSupportedCurrenciesHandler(): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent: { fiat: string[]; crypto: string[] };
+}> {
+  const output = {
+    fiat: SUPPORTED_FIAT_CURRENCIES,
+    crypto: SUPPORTED_CRYPTO_CURRENCIES,
+  };
+
+  const textSummary = [
+    `Supported Fiat Currencies (${SUPPORTED_FIAT_CURRENCIES.length}): ${SUPPORTED_FIAT_CURRENCIES.join(", ")}`,
+    "",
+    `Supported Crypto Currencies (${SUPPORTED_CRYPTO_CURRENCIES.length}): ${SUPPORTED_CRYPTO_CURRENCIES.join(", ")}`,
+  ].join("\n");
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: textSummary,
+      },
+    ],
+    structuredContent: output,
+  };
+}
+
 export function registerGetSupportedCurrencies(server: McpServer): void {
   server.registerTool(
     "get_supported_currencies",
@@ -14,27 +43,6 @@ export function registerGetSupportedCurrencies(server: McpServer): void {
         crypto: z.array(z.string()),
       },
     },
-    async () => {
-      const output = {
-        fiat: SUPPORTED_FIAT_CURRENCIES,
-        crypto: SUPPORTED_CRYPTO_CURRENCIES,
-      };
-
-      const textSummary = [
-        `Supported Fiat Currencies (${SUPPORTED_FIAT_CURRENCIES.length}): ${SUPPORTED_FIAT_CURRENCIES.join(", ")}`,
-        "",
-        `Supported Crypto Currencies (${SUPPORTED_CRYPTO_CURRENCIES.length}): ${SUPPORTED_CRYPTO_CURRENCIES.join(", ")}`,
-      ].join("\n");
-
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: textSummary,
-          },
-        ],
-        structuredContent: output,
-      };
-    },
+    getSupportedCurrenciesHandler,
   );
 }

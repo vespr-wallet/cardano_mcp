@@ -206,6 +206,48 @@ function transformResponse(response: StakingInfoResponse): z.infer<typeof stakin
   }
 }
 
+/**
+ * Handler for get_staking_info tool
+ */
+export async function getStakingInfoHandler({ address }: { address: string }): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent?: z.infer<typeof stakingOutputSchema>;
+  isError?: boolean;
+}> {
+  const trimmedAddress = address.trim();
+
+  // Validate address
+  if (!isValidCardanoAddress(trimmedAddress)) {
+    return {
+      content: [{ type: "text" as const, text: "Error: Invalid Cardano address." }],
+      isError: true,
+    };
+  }
+
+  try {
+    const response = await VesprApiRepository.getStakingInfo(trimmedAddress);
+
+    const output = transformResponse(response);
+    const summary = formatHumanReadable(response);
+
+    return {
+      content: [{ type: "text" as const, text: summary }],
+      structuredContent: output,
+    };
+  } catch (error) {
+    if (error instanceof VesprApiError) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerGetStakingInfo(server: McpServer): void {
   server.registerTool(
     "get_staking_info",
@@ -218,41 +260,6 @@ export function registerGetStakingInfo(server: McpServer): void {
       },
       outputSchema: stakingOutputSchema,
     },
-    async ({ address }) => {
-      const trimmedAddress = address.trim();
-
-      // Validate address
-      if (!isValidCardanoAddress(trimmedAddress)) {
-        return {
-          content: [{ type: "text" as const, text: "Error: Invalid Cardano address." }],
-          isError: true,
-        };
-      }
-
-      try {
-        const response = await VesprApiRepository.getStakingInfo(trimmedAddress);
-
-        const output = transformResponse(response);
-        const summary = formatHumanReadable(response);
-
-        return {
-          content: [{ type: "text" as const, text: summary }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        if (error instanceof VesprApiError) {
-          return {
-            content: [{ type: "text" as const, text: `Error: ${error.message}` }],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            { type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    getStakingInfoHandler,
   );
 }

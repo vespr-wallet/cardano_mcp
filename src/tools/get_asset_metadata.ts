@@ -42,6 +42,62 @@ function formatMetadata(metadata: Record<string, unknown>, indent: number = 0): 
   return lines.join("\n");
 }
 
+/**
+ * Handler for get_asset_metadata tool
+ */
+export async function getAssetMetadataHandler({ unit }: { unit: string }): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent?: z.infer<typeof assetMetadataOutputSchema>;
+  isError?: boolean;
+}> {
+  // Validate input
+  if (!unit || unit.trim() === "") {
+    return {
+      content: [{ type: "text" as const, text: "Error: Asset unit cannot be empty." }],
+      isError: true,
+    };
+  }
+
+  try {
+    const trimmedUnit = unit.trim();
+    const response = await VesprApiRepository.getAssetMetadata(trimmedUnit);
+
+    const output = {
+      unit: trimmedUnit,
+      name: response.name,
+      has_metadata: response.onchain_metadata !== null,
+      onchain_metadata: response.onchain_metadata,
+    };
+
+    // Format human-readable output
+    let summary: string;
+    if (response.onchain_metadata) {
+      const metadataFormatted = formatMetadata(response.onchain_metadata);
+      summary = [`Asset: ${response.name}`, `Unit: ${trimmedUnit}`, "", "On-chain Metadata:", metadataFormatted].join(
+        "\n",
+      );
+    } else {
+      summary = [`Asset: ${response.name}`, `Unit: ${trimmedUnit}`, `Status: No on-chain metadata found`].join("\n");
+    }
+
+    return {
+      content: [{ type: "text" as const, text: summary }],
+      structuredContent: output,
+    };
+  } catch (error) {
+    if (error instanceof VesprApiError) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerGetAssetMetadata(server: McpServer): void {
   server.registerTool(
     "get_asset_metadata",
@@ -56,57 +112,6 @@ export function registerGetAssetMetadata(server: McpServer): void {
       },
       outputSchema: assetMetadataOutputSchema,
     },
-    async ({ unit }) => {
-      // Validate input
-      const trimmedUnit = unit?.trim() ?? "";
-      if (!trimmedUnit) {
-        return {
-          content: [{ type: "text" as const, text: "Error: Asset unit cannot be empty." }],
-          isError: true,
-        };
-      }
-
-      try {
-        const response = await VesprApiRepository.getAssetMetadata(trimmedUnit);
-
-        const output = {
-          unit: trimmedUnit,
-          name: response.name,
-          has_metadata: response.onchain_metadata !== null,
-          onchain_metadata: response.onchain_metadata,
-        };
-
-        // Format human-readable output
-        let summary: string;
-        if (response.onchain_metadata) {
-          const metadataFormatted = formatMetadata(response.onchain_metadata);
-          summary = [`Asset: ${response.name}`, `Unit: ${trimmedUnit}`, "", "On-chain Metadata:", metadataFormatted].join(
-            "\n",
-          );
-        } else {
-          summary = [`Asset: ${response.name}`, `Unit: ${trimmedUnit}`, `Status: No on-chain metadata found`].join(
-            "\n",
-          );
-        }
-
-        return {
-          content: [{ type: "text" as const, text: summary }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        if (error instanceof VesprApiError) {
-          return {
-            content: [{ type: "text" as const, text: `Error: ${error.message}` }],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            { type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    getAssetMetadataHandler,
   );
 }

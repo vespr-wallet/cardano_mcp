@@ -2,6 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { VesprApiClient } from "./VesprApiClient.js";
 import { FetchApiClient } from "../utils/api/FetchApiClient.js";
 import { FiatCurrency, CryptoCurrency } from "../types/currency.js";
+import { config } from "../config.js";
 
 describe("VesprApiClient", () => {
   let client: VesprApiClient;
@@ -9,6 +10,7 @@ describe("VesprApiClient", () => {
   let postSpy: jest.SpiedFunction<typeof FetchApiClient.prototype.post>;
 
   beforeEach(() => {
+    config.apiKey = "test-api-key";
     getSpy = jest.spyOn(FetchApiClient.prototype, "get");
     postSpy = jest.spyOn(FetchApiClient.prototype, "post");
     client = new VesprApiClient();

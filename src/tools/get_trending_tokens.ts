@@ -4,7 +4,7 @@ import { VesprApiError } from "../types/errors.js";
 import { formatWithCommas } from "../utils/formatting.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { FiatCurrency, SupportedCurrency, SUPPORTED_CURRENCIES } from "../types/currency.js";
-import { TrendingPeriodSchema, TrendingTokenItem } from "../types/api/schemas.js";
+import { TrendingPeriod, TrendingPeriodSchema, TrendingTokenItem } from "../types/api/schemas.js";
 
 // Output schema for trending token item
 const trendingTokenOutputSchema = z.object({
@@ -79,6 +79,95 @@ function transformToken(token: TrendingTokenItem): z.infer<typeof trendingTokenO
   };
 }
 
+/**
+ * Handler for get_trending_tokens tool
+ */
+export async function getTrendingTokensHandler({
+  currency,
+  period,
+  limit,
+}: {
+  currency?: string;
+  period?: string;
+  limit?: number;
+}): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent?: z.infer<typeof trendingTokensOutputSchema>;
+  isError?: boolean;
+}> {
+  // Use default values if not specified
+  const effectiveCurrency = (currency as SupportedCurrency) ?? FiatCurrency.USD;
+  const effectiveLimit = limit ?? 10;
+
+  try {
+    const response = await VesprApiRepository.getTrendingTokens(
+      effectiveCurrency,
+      period as TrendingPeriod | undefined,
+    );
+
+    // Apply limit to results
+    const limitedData = response.data.slice(0, effectiveLimit);
+
+    // Transform for output - use the requested currency since API doesn't return it
+    const output = {
+      currency: effectiveCurrency,
+      period: period ?? null,
+      tokens: limitedData.map(transformToken),
+    };
+
+    // Handle empty results
+    if (limitedData.length === 0) {
+      const summary = [
+        `Trending Tokens${period ? ` (${period})` : ""}`,
+        `Currency: ${effectiveCurrency}`,
+        ``,
+        `No trending tokens found for the specified criteria.`,
+      ].join("\n");
+
+      return {
+        content: [{ type: "text" as const, text: summary }],
+        structuredContent: output,
+      };
+    }
+
+    // Format human-readable ranked list
+    const header = [`Trending Tokens${period ? ` (${period})` : ""}`, `Currency: ${effectiveCurrency}`, ``];
+
+    const tokenLines = limitedData.map((token, index) => {
+      const rank = index + 1;
+      const ticker = token.ticker ? ` (${token.ticker})` : "";
+      const verified = token.verified ? " [Verified]" : "";
+      const priceStr = formatPrice(token.ada_per_adjusted_unit, effectiveCurrency);
+      const changeStr = formatChange(token.period_ada_price_change_percentage);
+      const volumeStr = formatNumber(token.period_volume_ada, 0);
+
+      return [
+        `${rank}. ${token.name}${ticker}${verified}`,
+        `   Price: ${priceStr} ${effectiveCurrency} | Change: ${changeStr}`,
+        `   Volume: ${volumeStr} | Buys: ${token.period_buys_count} | Sells: ${token.period_sales_count}`,
+      ].join("\n");
+    });
+
+    const summary = [...header, ...tokenLines].join("\n");
+
+    return {
+      content: [{ type: "text" as const, text: summary }],
+      structuredContent: output,
+    };
+  } catch (error) {
+    if (error instanceof VesprApiError) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerGetTrendingTokens(server: McpServer): void {
   server.registerTool(
     "get_trending_tokens",
@@ -105,77 +194,6 @@ export function registerGetTrendingTokens(server: McpServer): void {
       },
       outputSchema: trendingTokensOutputSchema,
     },
-    async ({ currency, period, limit }) => {
-      // Use default values if not specified
-      const effectiveCurrency = (currency as SupportedCurrency) ?? FiatCurrency.USD;
-      const effectiveLimit = limit ?? 10;
-
-      try {
-        const response = await VesprApiRepository.getTrendingTokens(effectiveCurrency, period);
-
-        // Apply limit to results
-        const limitedData = response.data.slice(0, effectiveLimit);
-
-        // Transform for output - use the requested currency since API doesn't return it
-        const output = {
-          currency: effectiveCurrency,
-          period: period ?? null,
-          tokens: limitedData.map(transformToken),
-        };
-
-        // Handle empty results
-        if (limitedData.length === 0) {
-          const summary = [
-            `Trending Tokens${period ? ` (${period})` : ""}`,
-            `Currency: ${effectiveCurrency}`,
-            ``,
-            `No trending tokens found for the specified criteria.`,
-          ].join("\n");
-
-          return {
-            content: [{ type: "text" as const, text: summary }],
-            structuredContent: output,
-          };
-        }
-
-        // Format human-readable ranked list
-        const header = [`Trending Tokens${period ? ` (${period})` : ""}`, `Currency: ${effectiveCurrency}`, ``];
-
-        const tokenLines = limitedData.map((token, index) => {
-          const rank = index + 1;
-          const ticker = token.ticker ? ` (${token.ticker})` : "";
-          const verified = token.verified ? " [Verified]" : "";
-          const priceStr = formatPrice(token.ada_per_adjusted_unit, effectiveCurrency);
-          const changeStr = formatChange(token.period_ada_price_change_percentage);
-          const volumeStr = formatNumber(token.period_volume_ada, 0);
-
-          return [
-            `${rank}. ${token.name}${ticker}${verified}`,
-            `   Price: ${priceStr} ${effectiveCurrency} | Change: ${changeStr}`,
-            `   Volume: ${volumeStr} | Buys: ${token.period_buys_count} | Sells: ${token.period_sales_count}`,
-          ].join("\n");
-        });
-
-        const summary = [...header, ...tokenLines].join("\n");
-
-        return {
-          content: [{ type: "text" as const, text: summary }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        if (error instanceof VesprApiError) {
-          return {
-            content: [{ type: "text" as const, text: `Error: ${error.message}` }],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            { type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    getTrendingTokensHandler,
   );
 }

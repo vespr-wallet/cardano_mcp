@@ -126,6 +126,105 @@ function formatAssetSummary(
   return lines.join("\n");
 }
 
+/**
+ * Handler for get_asset_summary tool
+ */
+export async function getAssetSummaryHandler({ units }: { units: string[] }): Promise<{
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent?: z.infer<typeof assetSummaryOutputSchema>;
+  isError?: boolean;
+}> {
+  // Validate input - empty array
+  if (!units || units.length === 0) {
+    return {
+      content: [{ type: "text" as const, text: "Error: Units array cannot be empty." }],
+      isError: true,
+    };
+  }
+
+  // Validate input - max limit
+  if (units.length > MAX_ASSETS_LIMIT) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `Error: Maximum ${MAX_ASSETS_LIMIT} assets allowed per request. Received ${units.length}.`,
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  // Validate input - no empty strings
+  const trimmedUnits = units.map((u) => u.trim()).filter((u) => u !== "");
+  if (trimmedUnits.length === 0) {
+    return {
+      content: [{ type: "text" as const, text: "Error: All provided units are empty or whitespace." }],
+      isError: true,
+    };
+  }
+
+  try {
+    const response = await VesprApiRepository.getAssetSummary(trimmedUnits);
+
+    // Transform tokens to output format (including image for AI display)
+    const tokens = response.tokens.map((t) => ({
+      policy: t.policy,
+      hex_asset_name: t.hex_asset_name,
+      name: t.name,
+      ticker: t.ticker,
+      decimals: t.decimals,
+      verified: t.verified,
+      registered_name: t.registered_name,
+      image: t.image,
+    }));
+
+    // Transform NFTs to output format (including image for AI display)
+    const nfts = response.nfts.map((n) => ({
+      policy: n.policy,
+      hex_asset_name: n.hex_asset_name,
+      name: n.name,
+      registered_name: n.registered_name,
+      image: n.image,
+    }));
+
+    // Transform other NFTs to output format (including image for AI display)
+    const otherNfts = response.other_nfts.map((n) => ({
+      policy: n.policy,
+      hex_asset_name: n.hex_asset_name,
+      name: n.name,
+      registered_name: n.registered_name,
+      image: n.image,
+    }));
+
+    const output = {
+      queried_count: trimmedUnits.length,
+      tokens,
+      nfts,
+      other_nfts: otherNfts,
+    };
+
+    // Format human-readable output
+    const summary = formatAssetSummary(trimmedUnits.length, tokens, nfts, otherNfts);
+
+    return {
+      content: [{ type: "text" as const, text: summary }],
+      structuredContent: output,
+    };
+  } catch (error) {
+    if (error instanceof VesprApiError) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${error.message}` }],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` }],
+      isError: true,
+    };
+  }
+}
+
 export function registerGetAssetSummary(server: McpServer): void {
   server.registerTool(
     "get_asset_summary",
@@ -142,98 +241,6 @@ export function registerGetAssetSummary(server: McpServer): void {
       },
       outputSchema: assetSummaryOutputSchema,
     },
-    async ({ units }) => {
-      // Validate input - empty array
-      if (!units || units.length === 0) {
-        return {
-          content: [{ type: "text" as const, text: "Error: Units array cannot be empty." }],
-          isError: true,
-        };
-      }
-
-      // Validate input - max limit
-      if (units.length > MAX_ASSETS_LIMIT) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error: Maximum ${MAX_ASSETS_LIMIT} assets allowed per request. Received ${units.length}.`,
-            },
-          ],
-          isError: true,
-        };
-      }
-
-      // Validate input - no empty strings
-      const trimmedUnits = units.map((u) => u.trim()).filter((u) => u !== "");
-      if (trimmedUnits.length === 0) {
-        return {
-          content: [{ type: "text" as const, text: "Error: All provided units are empty or whitespace." }],
-          isError: true,
-        };
-      }
-
-      try {
-        const response = await VesprApiRepository.getAssetSummary(trimmedUnits);
-
-        // Transform tokens to output format (including image for AI display)
-        const tokens = response.tokens.map((t) => ({
-          policy: t.policy,
-          hex_asset_name: t.hex_asset_name,
-          name: t.name,
-          ticker: t.ticker,
-          decimals: t.decimals,
-          verified: t.verified,
-          registered_name: t.registered_name,
-          image: t.image,
-        }));
-
-        // Transform NFTs to output format (including image for AI display)
-        const nfts = response.nfts.map((n) => ({
-          policy: n.policy,
-          hex_asset_name: n.hex_asset_name,
-          name: n.name,
-          registered_name: n.registered_name,
-          image: n.image,
-        }));
-
-        // Transform other NFTs to output format (including image for AI display)
-        const otherNfts = response.other_nfts.map((n) => ({
-          policy: n.policy,
-          hex_asset_name: n.hex_asset_name,
-          name: n.name,
-          registered_name: n.registered_name,
-          image: n.image,
-        }));
-
-        const output = {
-          queried_count: trimmedUnits.length,
-          tokens,
-          nfts,
-          other_nfts: otherNfts,
-        };
-
-        // Format human-readable output
-        const summary = formatAssetSummary(trimmedUnits.length, tokens, nfts, otherNfts);
-
-        return {
-          content: [{ type: "text" as const, text: summary }],
-          structuredContent: output,
-        };
-      } catch (error) {
-        if (error instanceof VesprApiError) {
-          return {
-            content: [{ type: "text" as const, text: `Error: ${error.message}` }],
-            isError: true,
-          };
-        }
-        return {
-          content: [
-            { type: "text" as const, text: `Error: ${error instanceof Error ? error.message : "Unknown error"}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    getAssetSummaryHandler,
   );
 }

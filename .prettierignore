@@ -4,4 +4,5 @@ external_api_spec/*
 long_cache/
 ignore.js
 .claude/
+.omc/
 yaak/
