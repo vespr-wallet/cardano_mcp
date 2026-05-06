@@ -31,7 +31,7 @@ Add this to your project's `.mcp.json`:
   "mcpServers": {
     "cardano": {
       "type": "http",
-      "url": "https://mcp.vespr.xyz/mcp"
+      "url": "https://mcp.vespr.xyz"
     }
   }
 }
@@ -40,7 +40,7 @@ Add this to your project's `.mcp.json`:
 Or add it globally via the CLI:
 
 ```bash
-claude mcp add --transport http cardano https://mcp.vespr.xyz/mcp
+claude mcp add --transport http cardano https://mcp.vespr.xyz
 ```
 
 That's it — no API key required when using the hosted server.
@@ -100,7 +100,7 @@ The server starts on `http://localhost:3000`. Connect via Streamable HTTP:
   "mcpServers": {
     "cardano": {
       "type": "http",
-      "url": "http://localhost:3000/mcp",
+      "url": "http://localhost:3000",
       "headers": {
         "x-api-key": "${VESPR_API_KEY}"
       }

@@ -99,9 +99,9 @@ interface ExecuteToolParams {
  */
 export async function registerHttpRoutes(server: FastifyInstance): Promise<void> {
   /**
-   * GET /mcp/tools - List all available tools
+   * GET /tools - List all available tools
    */
-  server.get("/mcp/tools", async (_request: FastifyRequest, reply: FastifyReply) => {
+  server.get("/tools", async (_request: FastifyRequest, reply: FastifyReply) => {
     const startTime = Date.now();
 
     try {
@@ -132,12 +132,12 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
   });
 
   /**
-   * POST /mcp/tools/:toolName - Execute a tool
+   * POST /tools/:toolName - Execute a tool
    */
   server.post<{
     Params: ExecuteToolParams;
     Body: z.infer<typeof executeToolBodySchema>;
-  }>("/mcp/tools/:toolName", async (request: FastifyRequest, reply: FastifyReply) => {
+  }>("/tools/:toolName", async (request: FastifyRequest, reply: FastifyReply) => {
     const startTime = Date.now();
     const { toolName } = request.params as ExecuteToolParams;
 

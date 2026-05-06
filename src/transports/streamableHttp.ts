@@ -75,7 +75,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
     clearInterval(cleanupInterval);
   });
 
-  server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
+  server.post("/", async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
     const apiKey = (request.headers["x-api-key"] as string) || undefined;
 
@@ -108,7 +108,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
     }
   });
 
-  server.get("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
+  server.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
 
     if (!sessionId || !sessions.has(sessionId)) {
@@ -140,7 +140,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
     }
   });
 
-  server.delete("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
+  server.delete("/", async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
 
     if (!sessionId || !sessions.has(sessionId)) {
@@ -173,6 +173,6 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
   });
 
   logger.info("streamable_http_routes_registered", {
-    routes: ["POST /mcp", "GET /mcp", "DELETE /mcp"],
+    routes: ["POST /", "GET /", "DELETE /"],
   });
 }

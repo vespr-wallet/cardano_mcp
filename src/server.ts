@@ -64,21 +64,6 @@ async function configureServer(server: FastifyInstance): Promise<void> {
     };
   });
 
-  // Root endpoint
-  server.get("/", async () => {
-    return {
-      name: "@vespr/cardano-mcp",
-      version: "0.1.0",
-      transport: "http",
-      endpoints: {
-        health: "/health",
-        tools: "/mcp/tools",
-        execute: "/mcp/tools/:toolName",
-        mcp: "/mcp",
-      },
-    };
-  });
-
   // Register HTTP tools with the registry
   registerHttpTools();
 
@@ -97,7 +82,7 @@ async function configureServer(server: FastifyInstance): Promise<void> {
     timeWindow: "1 minute",
     hook: "preValidation",
     store: createDualWindowStore(config.rateLimitPerMinute, config.rateLimitPerDay),
-    allowList: (request) => !request.url.startsWith("/mcp"),
+    allowList: (request) => request.url === "/health",
     keyGenerator: rateLimitKeyGenerator,
     errorResponseBuilder: (_request, context) => ({
       statusCode: 429,
