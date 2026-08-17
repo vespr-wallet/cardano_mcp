@@ -171,19 +171,19 @@ describe("registerHttpRoutes", () => {
     };
   });
 
-  it("should register GET /mcp/tools route", async () => {
+  it("should register GET /tools route", async () => {
     await registerHttpRoutes(mockServer as FastifyInstance);
 
-    expect(mockServer.get).toHaveBeenCalledWith("/mcp/tools", expect.any(Function));
+    expect(mockServer.get).toHaveBeenCalledWith("/tools", expect.any(Function));
   });
 
-  it("should register POST /mcp/tools/:toolName route", async () => {
+  it("should register POST /tools/:toolName route", async () => {
     await registerHttpRoutes(mockServer as FastifyInstance);
 
-    expect(mockServer.post).toHaveBeenCalledWith("/mcp/tools/:toolName", expect.any(Function));
+    expect(mockServer.post).toHaveBeenCalledWith("/tools/:toolName", expect.any(Function));
   });
 
-  describe("GET /mcp/tools handler", () => {
+  describe("GET /tools handler", () => {
     it("should return list of registered tools", async () => {
       // Register a test tool in the global registry
       httpToolRegistry.registerTool({
@@ -196,7 +196,7 @@ describe("registerHttpRoutes", () => {
 
       await registerHttpRoutes(mockServer as FastifyInstance);
 
-      const route = registeredRoutes.get("GET /mcp/tools");
+      const route = registeredRoutes.get("GET /tools");
       expect(route).toBeDefined();
 
       const mockReply = {
@@ -221,7 +221,7 @@ describe("registerHttpRoutes", () => {
     it("should return empty list when no tools registered", async () => {
       await registerHttpRoutes(mockServer as FastifyInstance);
 
-      const route = registeredRoutes.get("GET /mcp/tools");
+      const route = registeredRoutes.get("GET /tools");
       const mockReply = {
         send: jest.fn(),
         status: jest.fn().mockReturnThis(),
@@ -236,7 +236,7 @@ describe("registerHttpRoutes", () => {
     });
   });
 
-  describe("POST /mcp/tools/:toolName handler", () => {
+  describe("POST /tools/:toolName handler", () => {
     beforeEach(async () => {
       // Register a test tool
       httpToolRegistry.registerTool({
@@ -256,7 +256,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should execute a tool and return result", async () => {
-      const route = registeredRoutes.get("POST /mcp/tools/:toolName");
+      const route = registeredRoutes.get("POST /tools/:toolName");
       expect(route).toBeDefined();
 
       const mockRequest = {
@@ -276,7 +276,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 404 for non-existent tool", async () => {
-      const route = registeredRoutes.get("POST /mcp/tools/:toolName");
+      const route = registeredRoutes.get("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "non_existent_tool" },
@@ -300,7 +300,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 400 for invalid request body", async () => {
-      const route = registeredRoutes.get("POST /mcp/tools/:toolName");
+      const route = registeredRoutes.get("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "echo_tool" },
@@ -324,7 +324,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 400 for invalid tool arguments", async () => {
-      const route = registeredRoutes.get("POST /mcp/tools/:toolName");
+      const route = registeredRoutes.get("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "echo_tool" },
@@ -359,7 +359,7 @@ describe("registerHttpRoutes", () => {
         },
       });
 
-      const route = registeredRoutes.get("POST /mcp/tools/:toolName");
+      const route = registeredRoutes.get("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "error_tool" },
@@ -392,7 +392,7 @@ describe("registerHttpRoutes", () => {
         }),
       });
 
-      const route = registeredRoutes.get("POST /mcp/tools/:toolName");
+      const route = registeredRoutes.get("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "text_only_tool" },
@@ -422,7 +422,7 @@ describe("registerHttpRoutes", () => {
         }),
       });
 
-      const route = registeredRoutes.get("POST /mcp/tools/:toolName");
+      const route = registeredRoutes.get("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "no_args_tool" },
