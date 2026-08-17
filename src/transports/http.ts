@@ -246,6 +246,6 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
   });
 
   logger.info("http_routes_registered", {
-    routes: ["/mcp/tools", "/mcp/tools/:toolName"],
+    routes: ["/tools", "/tools/:toolName"],
   });
 }
