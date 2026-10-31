@@ -300,7 +300,7 @@ export const TokenInfoResponseSchema = z.object({
     circSupply: z.number().nullish(), // Circulating supply
     fdv: z.number().nullish(), // Fully diluted valuation
     mcap: z.number().nullish(), // Market cap
-    totalSupply: z.number(),
+    totalSupply: z.number().nullish(), // Total supply
     riskCategory: TokenRiskRatingSchema.nullish(),
     verified: z.boolean(),
     currency: z.enum(SUPPORTED_CURRENCIES),

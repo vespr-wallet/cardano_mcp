@@ -3,18 +3,25 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetTokenInfo } from "./get_token_info.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
-import type { TokenInfoResponse } from "../types/api/schemas.js";
+import { TokenInfoResponseSchema, type TokenInfoResponse } from "../types/api/schemas.js";
 import { FiatCurrency } from "../types/currency.js";
+import type { z } from "zod";
 
 describe("get_token_info tool", () => {
   let registeredHandler: (args: { unit: string; currency?: string }) => Promise<unknown>;
+  let registeredOutputSchema: z.ZodType;
   let getTokenInfoSpy: jest.SpiedFunction<typeof VesprApiRepository.getTokenInfo>;
 
   beforeEach(() => {
     // Create a mock server that captures the registered tool handler
     const mockServer = {
       registerTool: jest.fn(
-        (_name: string, _config: unknown, handler: (args: { unit: string; currency?: string }) => Promise<unknown>) => {
+        (
+          _name: string,
+          config: { outputSchema: z.ZodType },
+          handler: (args: { unit: string; currency?: string }) => Promise<unknown>,
+        ) => {
+          registeredOutputSchema = config.outputSchema;
           registeredHandler = handler;
         },
       ),
@@ -159,6 +166,108 @@ describe("get_token_info tool", () => {
       expect(result.content[0].text).toContain("Market Cap: N/A");
       expect(result.content[0].text).toContain("Risk Rating: Not Rated");
       expect(result.content[0].text).toContain("Verified: No");
+    });
+
+    it("handles a response where every nullable field is null", async () => {
+      const mockResponse = TokenInfoResponseSchema.parse({
+        data: {
+          subject: validUnit,
+          name: "USDA",
+          ticker: null,
+          description: null,
+          url: null,
+          decimals: 6,
+          price: null,
+          circSupply: null,
+          fdv: null,
+          mcap: null,
+          totalSupply: null,
+          riskCategory: null,
+          verified: true,
+          currency: FiatCurrency.USD,
+        },
+      });
+
+      getTokenInfoSpy.mockResolvedValue(mockResponse);
+
+      const result = (await registeredHandler({ unit: validUnit })) as {
+        content: { type: string; text: string }[];
+        structuredContent: unknown;
+        isError?: boolean;
+      };
+
+      expect(result.isError).toBeUndefined();
+      expect(registeredOutputSchema.safeParse(result.structuredContent).success).toBe(true);
+      expect(result.structuredContent).toMatchObject({ circSupply: null, fdv: null, mcap: null, totalSupply: null });
+      expect(result.content[0].text).toContain("Price: N/A");
+      expect(result.content[0].text).toContain("Market Cap: N/A");
+      expect(result.content[0].text).toContain("FDV: N/A");
+      expect(result.content[0].text).toContain("Circulating Supply: N/A");
+      expect(result.content[0].text).toContain("Total Supply: N/A");
+    });
+
+    it("normalizes nullable fields omitted by the API to null", async () => {
+      const mockResponse = TokenInfoResponseSchema.parse({
+        data: {
+          subject: validUnit,
+          name: "Omitted Fields",
+          decimals: 6,
+          verified: false,
+          currency: FiatCurrency.USD,
+        },
+      });
+
+      getTokenInfoSpy.mockResolvedValue(mockResponse);
+
+      const result = (await registeredHandler({ unit: validUnit })) as {
+        content: { type: string; text: string }[];
+        structuredContent: unknown;
+      };
+
+      expect(registeredOutputSchema.safeParse(result.structuredContent).success).toBe(true);
+      expect(result.structuredContent).toMatchObject({
+        ticker: null,
+        description: null,
+        url: null,
+        price: null,
+        circSupply: null,
+        fdv: null,
+        mcap: null,
+        totalSupply: null,
+      });
+      expect(result.content[0].text).toContain("Total Supply: N/A");
+    });
+
+    it("keeps the valid supply when only totalSupply is null", async () => {
+      const mockResponse = TokenInfoResponseSchema.parse({
+        data: {
+          subject: validUnit,
+          name: "USDA",
+          ticker: "USDA",
+          decimals: 6,
+          price: 1,
+          circSupply: 5256000,
+          fdv: null,
+          mcap: 5256000,
+          totalSupply: null,
+          verified: true,
+          currency: FiatCurrency.USD,
+        },
+      });
+
+      getTokenInfoSpy.mockResolvedValue(mockResponse);
+
+      const result = (await registeredHandler({ unit: validUnit })) as {
+        content: { type: string; text: string }[];
+        structuredContent: unknown;
+      };
+
+      expect(registeredOutputSchema.safeParse(result.structuredContent).success).toBe(true);
+      expect(result.structuredContent).toMatchObject({ circSupply: 5256000, mcap: 5256000, totalSupply: null });
+      expect(result.content[0].text).toContain("Circulating Supply: 5,256,000");
+      expect(result.content[0].text).toContain("Market Cap: 5,256,000 USD");
+      expect(result.content[0].text).toContain("FDV: N/A");
+      expect(result.content[0].text).toContain("Total Supply: N/A");
     });
 
     it("passes currency parameter correctly", async () => {
