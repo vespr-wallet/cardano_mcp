@@ -176,7 +176,7 @@ Once connected, ask your AI assistant questions like:
 |------|-------------|
 | `get_wallet_balance` | Wallet balance — ADA, tokens, and portfolio value in any currency |
 | `get_transaction_history` | Transaction history with amounts and directions |
-| `get_token_info` | Token price, market cap, supply, and risk rating |
+| `get_token_info` | Token price, market cap, and supply |
 | `get_token_chart` | OHLCV candlestick price data for any time period |
 | `get_trending_tokens` | Trending tokens by volume, buys, or sells |
 | `get_staking_info` | Staking status, pool info, and rewards |

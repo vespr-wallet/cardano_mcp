@@ -79,7 +79,6 @@ describe("get_token_info tool", () => {
           fdv: 1234567890,
           mcap: 123456789,
           totalSupply: 10000000000,
-          riskCategory: "BBB",
           verified: true,
           currency: FiatCurrency.USD,
         },
@@ -96,7 +95,6 @@ describe("get_token_info tool", () => {
           price: number | null;
           mcap: number | null;
           verified: boolean;
-          riskCategory: string | null;
         };
       };
 
@@ -109,13 +107,11 @@ describe("get_token_info tool", () => {
       expect(result.structuredContent.price).toBe(0.123456);
       expect(result.structuredContent.mcap).toBe(123456789);
       expect(result.structuredContent.verified).toBe(true);
-      expect(result.structuredContent.riskCategory).toBe("BBB");
 
       // Check text content
       expect(result.content[0].text).toContain("Token: Test Token (TEST)");
       expect(result.content[0].text).toContain("Price: 0.12 USD");
       expect(result.content[0].text).toContain("Market Cap:");
-      expect(result.content[0].text).toContain("Risk Rating: BBB");
       expect(result.content[0].text).toContain("Verified: Yes");
       expect(result.content[0].text).toContain("Description: A test token for testing");
       expect(result.content[0].text).toContain("URL: https://testtoken.io");
@@ -135,7 +131,6 @@ describe("get_token_info tool", () => {
           fdv: null,
           mcap: null,
           totalSupply: 1000000,
-          riskCategory: "not_available",
           verified: false,
           currency: FiatCurrency.USD,
         },
@@ -149,7 +144,6 @@ describe("get_token_info tool", () => {
           ticker: string | null;
           price: number | null;
           mcap: number | null;
-          riskCategory: string | null;
         };
       };
 
@@ -157,14 +151,12 @@ describe("get_token_info tool", () => {
       expect(result.structuredContent.ticker).toBeNull();
       expect(result.structuredContent.price).toBeNull();
       expect(result.structuredContent.mcap).toBeNull();
-      expect(result.structuredContent.riskCategory).toBe("not_available");
 
-      // Check text shows N/A for null values and "Not Rated" for not_available
+      // Check text shows N/A for null values
       expect(result.content[0].text).toContain("Token: Unknown Token");
       expect(result.content[0].text).not.toContain("("); // No ticker in parentheses
       expect(result.content[0].text).toContain("Price: N/A");
       expect(result.content[0].text).toContain("Market Cap: N/A");
-      expect(result.content[0].text).toContain("Risk Rating: Not Rated");
       expect(result.content[0].text).toContain("Verified: No");
     });
 
@@ -182,7 +174,6 @@ describe("get_token_info tool", () => {
           fdv: null,
           mcap: null,
           totalSupply: null,
-          riskCategory: null,
           verified: true,
           currency: FiatCurrency.USD,
         },
@@ -284,7 +275,6 @@ describe("get_token_info tool", () => {
           fdv: null,
           mcap: null,
           totalSupply: 1000000,
-          riskCategory: null,
           verified: false,
           currency: FiatCurrency.EUR,
         },
@@ -314,7 +304,6 @@ describe("get_token_info tool", () => {
           fdv: null,
           mcap: null,
           totalSupply: 100,
-          riskCategory: "A",
           verified: true,
           currency: FiatCurrency.USD,
         },
@@ -345,7 +334,6 @@ describe("get_token_info tool", () => {
           fdv: 9876543210123,
           mcap: 1234567890123,
           totalSupply: 5000000000000,
-          riskCategory: "AAA",
           verified: true,
           currency: FiatCurrency.USD,
         },
