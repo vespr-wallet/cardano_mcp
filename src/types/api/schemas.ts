@@ -265,28 +265,8 @@ export type StakingInfoResponse = z.infer<typeof StakingInfoResponseSchema>;
 // ============================================================================
 
 /**
- * Token risk rating from Xerberus
- */
-export const TokenRiskRatingSchema = z.enum([
-  "A",
-  "AA",
-  "AAA", // Investment Grade
-  "B",
-  "BB",
-  "BBB", // Speculative
-  "C",
-  "CC",
-  "CCC", // Highly Speculative
-  "D", // Junk
-  "not_available", // Token not on Xerberus
-  "unknown", // Other error
-]);
-
-export type TokenRiskRating = z.infer<typeof TokenRiskRatingSchema>;
-
-/**
  * Schema for the /v1/token/:unit/info endpoint response.
- * Returns detailed token information including price, market cap, and risk rating.
+ * Returns detailed token information including price, market cap, and supply.
  */
 export const TokenInfoResponseSchema = z.object({
   data: z.object({
@@ -301,7 +281,6 @@ export const TokenInfoResponseSchema = z.object({
     fdv: z.number().nullish(), // Fully diluted valuation
     mcap: z.number().nullish(), // Market cap
     totalSupply: z.number().nullish(), // Total supply
-    riskCategory: TokenRiskRatingSchema.nullish(),
     verified: z.boolean(),
     currency: z.enum(SUPPORTED_CURRENCIES),
   }),

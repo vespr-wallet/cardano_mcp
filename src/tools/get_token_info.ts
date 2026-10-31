@@ -4,7 +4,6 @@ import { VesprApiError } from "../types/errors.js";
 import { formatWithCommas } from "../utils/formatting.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { FiatCurrency, SupportedCurrency, SUPPORTED_CURRENCIES } from "../types/currency.js";
-import { TokenRiskRatingSchema } from "../types/api/schemas.js";
 
 // Output schema matching TokenInfoResponse.data
 const tokenInfoOutputSchema = z.object({
@@ -19,7 +18,6 @@ const tokenInfoOutputSchema = z.object({
   fdv: z.number().nullable(),
   mcap: z.number().nullable(),
   totalSupply: z.number().nullable(),
-  riskCategory: TokenRiskRatingSchema.nullable(),
   verified: z.boolean(),
   currency: z.string(),
 });
@@ -33,16 +31,6 @@ function formatNumber(value: number | null | undefined, decimals = 2): string {
   }
   const formatted = value.toFixed(decimals);
   return formatWithCommas(formatted);
-}
-
-/**
- * Get a human-readable risk category description
- */
-function getRiskDescription(category: string | null | undefined): string {
-  if (!category || category === "not_available" || category === "unknown") {
-    return "Not Rated";
-  }
-  return category;
 }
 
 /**
@@ -87,7 +75,6 @@ export async function getTokenInfoHandler({ unit, currency }: { unit: string; cu
       fdv: data.fdv ?? null,
       mcap: data.mcap ?? null,
       totalSupply: data.totalSupply ?? null,
-      riskCategory: data.riskCategory ?? null,
       verified: data.verified,
       currency: data.currency,
     };
@@ -99,7 +86,6 @@ export async function getTokenInfoHandler({ unit, currency }: { unit: string; cu
     const fdvStr = data.fdv != null ? `${formatNumber(data.fdv, 0)} ${data.currency}` : "N/A";
     const circSupplyStr = data.circSupply != null ? formatNumber(data.circSupply, 0) : "N/A";
     const totalSupplyStr = formatNumber(data.totalSupply, 0);
-    const riskStr = getRiskDescription(data.riskCategory);
 
     const summary = [
       `Token: ${data.name}${ticker}`,
@@ -108,7 +94,6 @@ export async function getTokenInfoHandler({ unit, currency }: { unit: string; cu
       `FDV: ${fdvStr}`,
       `Circulating Supply: ${circSupplyStr}`,
       `Total Supply: ${totalSupplyStr}`,
-      `Risk Rating: ${riskStr}`,
       `Verified: ${data.verified ? "Yes" : "No"}`,
       data.description ? `\nDescription: ${data.description}` : "",
       data.url ? `URL: ${data.url}` : "",
@@ -139,8 +124,7 @@ export function registerGetTokenInfo(server: McpServer): void {
     "get_token_info",
     {
       title: "Get Token Info",
-      description:
-        "Query detailed information about a Cardano native token including price, market cap, supply, and risk rating.",
+      description: "Query detailed information about a Cardano native token including price, market cap, and supply.",
       inputSchema: {
         unit: z
           .string()
