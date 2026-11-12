@@ -5,10 +5,17 @@ type Store = InstanceType<ReturnType<typeof createDualWindowStore>>;
 
 function incr(store: Store, key: string): Promise<{ current: number; ttl: number }> {
   return new Promise((resolve, reject) => {
-    store.incr(key, (err, result) => {
-      if (err) reject(err);
-      else resolve(result!);
-    });
+    // The plugin always passes timeWindow and max; the dual-window store ignores them
+    store.incr(
+      key,
+      (err, result) => {
+        if (err) reject(err);
+        else if (result === undefined) reject(new Error("incr returned no result"));
+        else resolve(result);
+      },
+      60_000,
+      3,
+    );
   });
 }
 
