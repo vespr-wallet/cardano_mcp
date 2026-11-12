@@ -8,6 +8,7 @@ import { registerHttpRoutes } from "./transports/http.js";
 import { registerStreamableHttpRoutes } from "./transports/streamableHttp.js";
 import { registerHttpTools } from "./tools/index.js";
 import { createDualWindowStore } from "./middleware/rateLimit.js";
+import { VERSION } from "./version.js";
 
 let serverStartTime: number | null = null;
 
@@ -111,7 +112,7 @@ export async function startServer(): Promise<FastifyInstance> {
   logger.info("http_server_started", {
     port,
     host,
-    version: "0.1.0",
+    version: VERSION,
   });
 
   return server;
