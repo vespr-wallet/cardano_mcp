@@ -39,15 +39,15 @@ export class FetchApiClient {
   }
 
   private async request<T>(request: InternalRequest<T>): Promise<T> {
-    let lastError: Error | undefined;
+    // maxRetries is the total number of attempts. Always make at least one, so a zero, negative or NaN
+    // value still sends the request and rejects with its real error.
+    const maxAttempts = this.config.maxRetries >= 1 ? Math.floor(this.config.maxRetries) : 1;
 
-    for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
+    for (let attempt = 0; ; attempt++) {
       try {
         return await this.requestOnce(request);
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-
-        if (!this.isRetryableError(error) || attempt === this.config.maxRetries - 1) {
+        if (!this.isRetryableError(error) || attempt >= maxAttempts - 1) {
           throw error;
         }
 
@@ -55,16 +55,14 @@ export class FetchApiClient {
         logger.warn("api_retry", {
           context: request.context,
           attempt: attempt + 1,
-          maxRetries: this.config.maxRetries,
+          maxRetries: maxAttempts,
           delayMs,
-          error: lastError.message,
+          error: error instanceof Error ? error.message : String(error),
         });
 
         await this.sleep(delayMs);
       }
     }
-
-    throw lastError;
   }
 
   private async requestOnce<T>(request: InternalRequest<T>): Promise<T> {

@@ -140,6 +140,37 @@ describe("FetchApiClient", () => {
       expect(mockFetch).toHaveBeenCalledTimes(3);
     }, 10000);
 
+    it.each([0, -1, Number.NaN])(
+      "makes one attempt and rejects with the real error when maxRetries is %p",
+      async (maxRetries) => {
+        const singleAttemptClient = new FetchApiClient({ ...retryConfig, maxRetries });
+        mockFetch.mockResolvedValueOnce(new Response("Server error", { status: 500 }));
+
+        await expect(
+          singleAttemptClient.get({
+            path: "/test",
+            schema: testSchema,
+            context: "zero-retry-test",
+          }),
+        ).rejects.toThrow(VesprApiError);
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("returns the response when maxRetries is 0", async () => {
+      const singleAttemptClient = new FetchApiClient({ ...retryConfig, maxRetries: 0 });
+      mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ id: 1, name: "Test" }), { status: 200 }));
+
+      await expect(
+        singleAttemptClient.get({
+          path: "/test",
+          schema: testSchema,
+          context: "zero-retry-success-test",
+        }),
+      ).resolves.toEqual({ id: 1, name: "Test" });
+    });
+
     it("does not retry on 4xx errors (except 429)", async () => {
       mockFetch.mockResolvedValueOnce(new Response("Bad request", { status: 400 }));
 

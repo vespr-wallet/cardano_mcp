@@ -24,10 +24,10 @@ const TESTNET_PREFIX = "addr_test1";
  * Note: This is NOT cryptographic validation - it's a basic format check
  * to catch obvious errors before making an API call.
  *
- * @param address - The address string to validate
+ * @param address - The value to validate; non-strings (e.g. untyped tool input) are rejected
  * @returns true if the address appears to be valid format
  */
-export function isValidCardanoAddress(address: string): boolean {
+export function isValidCardanoAddress(address: unknown): boolean {
   if (typeof address !== "string") {
     return false;
   }
@@ -59,11 +59,11 @@ const POOL_PREFIX = "pool1";
  * Note: This is NOT cryptographic validation - it's a basic format check
  * to catch obvious errors before making an API call.
  *
- * @param poolId - The pool ID string to validate
+ * @param poolId - The value to validate; non-strings (e.g. untyped tool input) are rejected
  * @returns true if the pool ID appears to be valid format
  */
-export function isValidPoolId(poolId: string): boolean {
-  if (!poolId || typeof poolId !== "string") {
+export function isValidPoolId(poolId: unknown): boolean {
+  if (typeof poolId !== "string") {
     return false;
   }
 

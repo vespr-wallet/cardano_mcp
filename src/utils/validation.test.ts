@@ -30,9 +30,9 @@ describe("isValidCardanoAddress", () => {
     });
 
     it("rejects non-string input", () => {
-      expect(isValidCardanoAddress(null as unknown as string)).toBe(false);
-      expect(isValidCardanoAddress(undefined as unknown as string)).toBe(false);
-      expect(isValidCardanoAddress(123 as unknown as string)).toBe(false);
+      expect(isValidCardanoAddress(null)).toBe(false);
+      expect(isValidCardanoAddress(undefined)).toBe(false);
+      expect(isValidCardanoAddress(123)).toBe(false);
     });
 
     it("handles whitespace-only input", () => {
@@ -84,15 +84,15 @@ describe("isValidPoolId", () => {
     });
 
     it("rejects null", () => {
-      expect(isValidPoolId(null as unknown as string)).toBe(false);
+      expect(isValidPoolId(null)).toBe(false);
     });
 
     it("rejects undefined", () => {
-      expect(isValidPoolId(undefined as unknown as string)).toBe(false);
+      expect(isValidPoolId(undefined)).toBe(false);
     });
 
     it("rejects non-string input", () => {
-      expect(isValidPoolId(123 as unknown as string)).toBe(false);
+      expect(isValidPoolId(123)).toBe(false);
     });
 
     it("handles whitespace-only input", () => {

@@ -1,32 +1,34 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetPoolInfo } from "./get_pool_info.js";
+import { registerGetPoolInfo, getPoolInfoHandler } from "./get_pool_info.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import type { PoolInfoResponse } from "../types/api/schemas.js";
 
 describe("get_pool_info tool", () => {
-  let registeredHandler: (args: { pool_id: string }) => Promise<unknown>;
+  const registeredHandler = getPoolInfoHandler;
   let getPoolInfoSpy: jest.SpiedFunction<typeof VesprApiRepository.getPoolInfo>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (_name: string, _config: unknown, handler: (args: { pool_id: string }) => Promise<unknown>) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetPoolInfo(mockServer);
-
     // Spy on the repository method
     getPoolInfoSpy = jest.spyOn(VesprApiRepository, "getPoolInfo");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("registers getPoolInfoHandler as the get_pool_info tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetPoolInfo(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_pool_info",
+      expect.objectContaining({ title: expect.any(String) }),
+      getPoolInfoHandler,
+    );
   });
 
   describe("input validation", () => {
