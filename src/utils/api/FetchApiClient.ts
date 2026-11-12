@@ -21,7 +21,7 @@ interface BaseRequest<T> {
   context: string;
 }
 
-export interface GetRequest<T> extends BaseRequest<T> {}
+export type GetRequest<T> = BaseRequest<T>;
 
 export interface PostRequest<T> extends BaseRequest<T> {
   body: unknown;

@@ -401,11 +401,12 @@ describe("VesprApiClient API key resolution", () => {
   let fetchSpy: jest.SpiedFunction<typeof fetch>;
 
   beforeEach(() => {
-    fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation(
-      async () =>
+    fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation(() =>
+      Promise.resolve(
         new Response(JSON.stringify({ currency: "EUR", spot: "0.3", spot1hAgo: null, spot24hAgo: null }), {
           status: 200,
         }),
+      ),
     );
   });
 

@@ -55,7 +55,7 @@ describe("get_asset_summary tool", () => {
     });
 
     it("returns error when exceeding max limit of 100 assets", async () => {
-      const units = Array(101).fill("unit123");
+      const units = Array<string>(101).fill("unit123");
 
       const result = await registeredHandler({ units });
 
@@ -68,7 +68,7 @@ describe("get_asset_summary tool", () => {
     });
 
     it("accepts exactly 100 assets", async () => {
-      const units = Array(100).fill("unit123");
+      const units = Array<string>(100).fill("unit123");
       const mockResponse: AssetSummaryResponse = {
         tokens: [],
         nfts: [],

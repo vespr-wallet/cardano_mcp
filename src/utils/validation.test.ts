@@ -1,3 +1,4 @@
+import { describe, it, expect } from "@jest/globals";
 import { isValidCardanoAddress, isValidPoolId } from "./validation.js";
 
 describe("isValidCardanoAddress", () => {

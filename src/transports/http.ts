@@ -130,7 +130,7 @@ interface ExecuteToolParams {
 /**
  * Register MCP HTTP routes with Fastify
  */
-export async function registerHttpRoutes(server: FastifyInstance): Promise<void> {
+export function registerHttpRoutes(server: FastifyInstance): void {
   /**
    * GET /tools - List all available tools
    */

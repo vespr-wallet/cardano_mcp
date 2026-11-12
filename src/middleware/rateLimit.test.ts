@@ -103,7 +103,7 @@ describe("DualWindowStore", () => {
         url: "/tools",
         path: "/tools",
         prefix: "",
-        handler: async () => "ok",
+        handler: () => "ok",
       });
 
       await incr(child, "1.2.3.4");

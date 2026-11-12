@@ -42,7 +42,7 @@ function formatNumber(value: number | null | undefined, decimals = 2): string {
 /**
  * Format price with appropriate precision
  */
-function formatPrice(value: number, currency: string): string {
+function formatPrice(value: number): string {
   // More decimals for small prices, fewer for larger ones
   const decimals = value < 0.01 ? 6 : value < 1 ? 4 : 2;
   const formatted = value.toFixed(decimals);
@@ -134,7 +134,7 @@ export async function getTrendingTokensHandler({
       const rank = index + 1;
       const ticker = token.ticker ? ` (${token.ticker})` : "";
       const verified = token.verified ? " [Verified]" : "";
-      const priceStr = formatPrice(token.ada_per_adjusted_unit, effectiveCurrency);
+      const priceStr = formatPrice(token.ada_per_adjusted_unit);
       const changeStr = formatChange(token.period_ada_price_change_percentage);
       const volumeStr = formatNumber(token.period_volume_ada, 0);
 

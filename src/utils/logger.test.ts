@@ -20,7 +20,7 @@ describe("logger", () => {
   });
 
   function loggedEntries(): unknown[] {
-    return errorSpy.mock.calls.map(([line]) => JSON.parse(String(line)));
+    return errorSpy.mock.calls.map(([line]): unknown => JSON.parse(String(line)));
   }
 
   it.each<LogLevel>(["debug", "info", "warn", "error"])("writes %s entries as one JSON line to stderr", (level) => {

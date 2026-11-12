@@ -5,7 +5,7 @@ import { VesprApiError, getFallbackErrorMessage } from "../../types/errors.js";
 
 // Mock global fetch
 const mockFetch = jest.fn<typeof fetch>();
-global.fetch = mockFetch;
+globalThis.fetch = mockFetch;
 
 describe("FetchApiClient", () => {
   const defaultConfig: FetchApiClientConfig = {
@@ -214,7 +214,9 @@ describe("FetchApiClient", () => {
         new Response(JSON.stringify({ errorMessage: 42, devErrorMessage: "details" }), { status: 400 }),
       );
 
-      const error = await client.get({ path: "/test", schema: testSchema, context: "bad-error-body" }).catch((e) => e);
+      const error = await client
+        .get({ path: "/test", schema: testSchema, context: "bad-error-body" })
+        .catch((e: unknown) => e);
 
       if (!(error instanceof VesprApiError)) throw error;
       expect(error.message).toBe(getFallbackErrorMessage(400));

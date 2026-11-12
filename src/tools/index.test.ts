@@ -299,7 +299,7 @@ describe("registerHttpTools (HTTP transport)", () => {
 
     beforeEach(async () => {
       server = Fastify();
-      await registerHttpRoutes(server);
+      registerHttpRoutes(server);
       await server.ready();
     });
 

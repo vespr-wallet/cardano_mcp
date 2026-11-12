@@ -304,6 +304,7 @@ npm install
 npm run build        # compile TypeScript
 npm test             # run tests
 npm run test:coverage  # tests with coverage report
+npm run lint         # ESLint (typescript-eslint), zero warnings allowed
 ```
 
 ## License

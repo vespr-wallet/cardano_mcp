@@ -57,7 +57,7 @@ async function configureServer(server: FastifyInstance): Promise<void> {
   await server.register(sensible);
 
   // Health check endpoint
-  server.get("/health", async () => {
+  server.get("/health", () => {
     const now = Date.now();
     return {
       status: "ok",
@@ -94,8 +94,8 @@ async function configureServer(server: FastifyInstance): Promise<void> {
     }),
   });
 
-  await registerHttpRoutes(server);
-  await registerStreamableHttpRoutes(server, config.sessionTtlMs);
+  registerHttpRoutes(server);
+  registerStreamableHttpRoutes(server, config.sessionTtlMs);
 }
 
 /**
