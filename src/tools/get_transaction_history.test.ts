@@ -104,23 +104,7 @@ describe("get_transaction_history tool", () => {
 
       getTransactionHistorySpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          sinceBlock: number;
-          toBlock: number;
-          transactionCount: number;
-          transactions: {
-            txHash: string;
-            timestamp: string;
-            blockHeight: number;
-            direction: string;
-            adaAmount: string;
-            fee: string;
-            assetCount: number;
-          }[];
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(getTransactionHistorySpy).toHaveBeenCalledWith(validAddress, undefined);
 
@@ -218,18 +202,13 @@ describe("get_transaction_history tool", () => {
 
       getTransactionHistorySpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          transactions: { direction: string }[];
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       // Check all direction labels are mapped correctly
-      expect(result.structuredContent.transactions[0].direction).toBe("Received");
-      expect(result.structuredContent.transactions[1].direction).toBe("Sent");
-      expect(result.structuredContent.transactions[2].direction).toBe("Self Transfer");
-      expect(result.structuredContent.transactions[3].direction).toBe("Multisig");
+      expect(result.structuredContent?.transactions[0].direction).toBe("Received");
+      expect(result.structuredContent?.transactions[1].direction).toBe("Sent");
+      expect(result.structuredContent?.transactions[2].direction).toBe("Self Transfer");
+      expect(result.structuredContent?.transactions[3].direction).toBe("Multisig");
 
       // Check text content includes all direction labels
       expect(result.content[0].text).toContain("Received");
@@ -247,18 +226,10 @@ describe("get_transaction_history tool", () => {
 
       getTransactionHistorySpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          sinceBlock: number;
-          toBlock: number;
-          transactionCount: number;
-          transactions: unknown[];
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
-      expect(result.structuredContent.transactionCount).toBe(0);
-      expect(result.structuredContent.transactions).toEqual([]);
+      expect(result.structuredContent?.transactionCount).toBe(0);
+      expect(result.structuredContent?.transactions).toEqual([]);
       expect(result.content[0].text).toContain("Total: 0 transaction(s)");
     });
 
@@ -284,10 +255,7 @@ describe("get_transaction_history tool", () => {
     it("handles API errors gracefully", async () => {
       getTransactionHistorySpy.mockRejectedValue(new VesprApiError("Internal server error", 500));
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Internal server error");
@@ -296,10 +264,7 @@ describe("get_transaction_history tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getTransactionHistorySpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");

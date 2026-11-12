@@ -26,10 +26,7 @@ describe("get_supported_currencies tool", () => {
 
   describe("successful responses", () => {
     it("returns list of supported fiat and crypto currencies", async () => {
-      const result = (await registeredHandler()) as {
-        content: Array<{ type: string; text: string }>;
-        structuredContent: { fiat: string[]; crypto: string[] };
-      };
+      const result = await registeredHandler();
 
       // Check structured content
       expect(result.structuredContent).toEqual({
@@ -45,41 +42,31 @@ describe("get_supported_currencies tool", () => {
     });
 
     it("includes correct number of fiat currencies in text", async () => {
-      const result = (await registeredHandler()) as {
-        content: Array<{ type: string; text: string }>;
-      };
+      const result = await registeredHandler();
 
       expect(result.content[0].text).toContain(`Supported Fiat Currencies (${SUPPORTED_FIAT_CURRENCIES.length})`);
     });
 
     it("includes correct number of crypto currencies in text", async () => {
-      const result = (await registeredHandler()) as {
-        content: Array<{ type: string; text: string }>;
-      };
+      const result = await registeredHandler();
 
       expect(result.content[0].text).toContain(`Supported Crypto Currencies (${SUPPORTED_CRYPTO_CURRENCIES.length})`);
     });
 
     it("includes USD in fiat currencies", async () => {
-      const result = (await registeredHandler()) as {
-        structuredContent: { fiat: string[]; crypto: string[] };
-      };
+      const result = await registeredHandler();
 
       expect(result.structuredContent.fiat).toContain("USD");
     });
 
     it("includes ADA in crypto currencies", async () => {
-      const result = (await registeredHandler()) as {
-        structuredContent: { fiat: string[]; crypto: string[] };
-      };
+      const result = await registeredHandler();
 
       expect(result.structuredContent.crypto).toContain("ADA");
     });
 
     it("has only ADA as crypto currency", async () => {
-      const result = (await registeredHandler()) as {
-        structuredContent: { fiat: string[]; crypto: string[] };
-      };
+      const result = await registeredHandler();
 
       // Currently only ADA is supported as crypto currency
       expect(result.structuredContent.crypto).toEqual(["ADA"]);

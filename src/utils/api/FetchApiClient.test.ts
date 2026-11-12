@@ -1,7 +1,7 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { z } from "zod";
 import { FetchApiClient, type FetchApiClientConfig } from "./FetchApiClient.js";
-import { VesprApiError } from "../../types/errors.js";
+import { VesprApiError, getFallbackErrorMessage } from "../../types/errors.js";
 
 // Mock global fetch
 const mockFetch = jest.fn<typeof fetch>();
@@ -203,10 +203,22 @@ describe("FetchApiClient", () => {
         });
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(VesprApiError);
-        expect((error as VesprApiError).message).toBe("Wallet not found");
-        expect((error as VesprApiError).statusCode).toBe(404);
+        if (!(error instanceof VesprApiError)) throw error;
+        expect(error.message).toBe("Wallet not found");
+        expect(error.statusCode).toBe(404);
       }
+    });
+
+    it("uses the fallback message when errorMessage is not a string", async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({ errorMessage: 42, devErrorMessage: "details" }), { status: 400 }),
+      );
+
+      const error = await client.get({ path: "/test", schema: testSchema, context: "bad-error-body" }).catch((e) => e);
+
+      if (!(error instanceof VesprApiError)) throw error;
+      expect(error.message).toBe(getFallbackErrorMessage(400));
+      expect(error.devMessage).toBe("details");
     });
 
     it("uses fallback message when error body cannot be parsed", async () => {
@@ -221,8 +233,8 @@ describe("FetchApiClient", () => {
         });
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(VesprApiError);
-        expect((error as VesprApiError).statusCode).toBe(400);
+        if (!(error instanceof VesprApiError)) throw error;
+        expect(error.statusCode).toBe(400);
       }
     });
 
@@ -239,8 +251,8 @@ describe("FetchApiClient", () => {
         });
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(VesprApiError);
-        expect((error as VesprApiError).message).toBe("Request timed out. Try again.");
+        if (!(error instanceof VesprApiError)) throw error;
+        expect(error.message).toBe("Request timed out. Try again.");
       }
     });
 
@@ -255,8 +267,8 @@ describe("FetchApiClient", () => {
         });
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(VesprApiError);
-        expect((error as VesprApiError).message).toBe("Unable to connect to API. Check your internet connection.");
+        if (!(error instanceof VesprApiError)) throw error;
+        expect(error.message).toBe("Unable to connect to API. Check your internet connection.");
       }
     });
 
@@ -290,8 +302,8 @@ describe("FetchApiClient", () => {
         });
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(VesprApiError);
-        expect((error as VesprApiError).message).toContain("Invalid API response");
+        if (!(error instanceof VesprApiError)) throw error;
+        expect(error.message).toContain("Invalid API response");
       }
     });
 
@@ -306,8 +318,8 @@ describe("FetchApiClient", () => {
         });
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(VesprApiError);
-        expect((error as VesprApiError).message).toBe("Failed to parse API response.");
+        if (!(error instanceof VesprApiError)) throw error;
+        expect(error.message).toBe("Failed to parse API response.");
       }
     });
   });
@@ -360,9 +372,9 @@ describe("FetchApiClient", () => {
         });
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(VesprApiError);
+        if (!(error instanceof VesprApiError)) throw error;
         // Should use fallback message
-        expect((error as VesprApiError).statusCode).toBe(400);
+        expect(error.statusCode).toBe(400);
       }
     });
 

@@ -70,23 +70,15 @@ describe("get_asset_metadata tool", () => {
 
       getAssetMetadataSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: testUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          unit: string;
-          name: string;
-          has_metadata: boolean;
-          onchain_metadata: Record<string, unknown> | null;
-        };
-      };
+      const result = await registeredHandler({ unit: testUnit });
 
       expect(getAssetMetadataSpy).toHaveBeenCalledWith(testUnit);
 
       // Check structured content
-      expect(result.structuredContent.unit).toBe(testUnit);
-      expect(result.structuredContent.name).toBe("TestNFT");
-      expect(result.structuredContent.has_metadata).toBe(true);
-      expect(result.structuredContent.onchain_metadata).toEqual(mockResponse.onchain_metadata);
+      expect(result.structuredContent?.unit).toBe(testUnit);
+      expect(result.structuredContent?.name).toBe("TestNFT");
+      expect(result.structuredContent?.has_metadata).toBe(true);
+      expect(result.structuredContent?.onchain_metadata).toEqual(mockResponse.onchain_metadata);
 
       // Check text content includes metadata
       expect(result.content[0].text).toContain("Asset: TestNFT");
@@ -104,23 +96,15 @@ describe("get_asset_metadata tool", () => {
 
       getAssetMetadataSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: testUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          unit: string;
-          name: string;
-          has_metadata: boolean;
-          onchain_metadata: Record<string, unknown> | null;
-        };
-      };
+      const result = await registeredHandler({ unit: testUnit });
 
       expect(getAssetMetadataSpy).toHaveBeenCalledWith(testUnit);
 
       // Check structured content
-      expect(result.structuredContent.unit).toBe(testUnit);
-      expect(result.structuredContent.name).toBe("SimpleToken");
-      expect(result.structuredContent.has_metadata).toBe(false);
-      expect(result.structuredContent.onchain_metadata).toBeNull();
+      expect(result.structuredContent?.unit).toBe(testUnit);
+      expect(result.structuredContent?.name).toBe("SimpleToken");
+      expect(result.structuredContent?.has_metadata).toBe(false);
+      expect(result.structuredContent?.onchain_metadata).toBeNull();
 
       // Check text content shows no metadata status
       expect(result.content[0].text).toContain("Asset: SimpleToken");
@@ -147,19 +131,11 @@ describe("get_asset_metadata tool", () => {
 
       getAssetMetadataSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: testUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          unit: string;
-          name: string;
-          has_metadata: boolean;
-          onchain_metadata: Record<string, unknown> | null;
-        };
-      };
+      const result = await registeredHandler({ unit: testUnit });
 
       // Check structured content preserves nested structure
-      expect(result.structuredContent.has_metadata).toBe(true);
-      expect(result.structuredContent.onchain_metadata).toEqual(mockResponse.onchain_metadata);
+      expect(result.structuredContent?.has_metadata).toBe(true);
+      expect(result.structuredContent?.onchain_metadata).toEqual(mockResponse.onchain_metadata);
 
       // Check text content includes nested data
       const text = result.content[0].text;
@@ -179,18 +155,10 @@ describe("get_asset_metadata tool", () => {
 
       getAssetMetadataSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: `  ${testUnit}  ` })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          unit: string;
-          name: string;
-          has_metadata: boolean;
-          onchain_metadata: Record<string, unknown> | null;
-        };
-      };
+      const result = await registeredHandler({ unit: `  ${testUnit}  ` });
 
       expect(getAssetMetadataSpy).toHaveBeenCalledWith(testUnit);
-      expect(result.structuredContent.unit).toBe(testUnit);
+      expect(result.structuredContent?.unit).toBe(testUnit);
       expect(result.content[0].text).toContain(`Unit: ${testUnit}`);
     });
   });
@@ -199,10 +167,7 @@ describe("get_asset_metadata tool", () => {
     it("handles API errors gracefully", async () => {
       getAssetMetadataSpy.mockRejectedValue(new VesprApiError("Internal server error", 500));
 
-      const result = (await registeredHandler({ unit: "someunit" })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: "someunit" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Internal server error");
@@ -211,10 +176,7 @@ describe("get_asset_metadata tool", () => {
     it("handles 404 errors gracefully", async () => {
       getAssetMetadataSpy.mockRejectedValue(new VesprApiError("Asset not found", 404));
 
-      const result = (await registeredHandler({ unit: "nonexistent" })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: "nonexistent" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Asset not found");
@@ -223,10 +185,7 @@ describe("get_asset_metadata tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getAssetMetadataSpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ unit: "someunit" })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: "someunit" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -235,10 +194,7 @@ describe("get_asset_metadata tool", () => {
     it("handles non-Error thrown values", async () => {
       getAssetMetadataSpy.mockRejectedValue("String error");
 
-      const result = (await registeredHandler({ unit: "someunit" })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: "someunit" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");

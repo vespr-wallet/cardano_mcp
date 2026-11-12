@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { httpToolRegistry, HttpToolResult } from "../transports/http.js";
+import { httpToolRegistry } from "../transports/http.js";
 import { registerGetAssetMetadata, getAssetMetadataHandler } from "./get_asset_metadata.js";
 import { registerGetAssetSummary, getAssetSummaryHandler } from "./get_asset_summary.js";
 import { registerGetPoolInfo, getPoolInfoHandler } from "./get_pool_info.js";
@@ -41,8 +41,8 @@ export function registerHttpTools(): void {
     name: "get_supported_currencies",
     title: "Get Supported Currencies",
     description: "Get the list of supported fiat and crypto currencies for the available MCP tools",
-    inputSchema: {},
-    handler: getSupportedCurrenciesHandler as () => Promise<HttpToolResult>,
+    inputSchema: z.object({}),
+    handler: getSupportedCurrenciesHandler,
   });
 
   // get_wallet_balance
@@ -60,7 +60,7 @@ export function registerHttpTools(): void {
         )
         .describe("The currency to use for the displayed data"),
     }),
-    handler: getWalletBalanceHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getWalletBalanceHandler,
   });
 
   // get_transaction_history
@@ -74,7 +74,7 @@ export function registerHttpTools(): void {
         .preprocess((val) => (val === null || val === "" ? undefined : val), z.number().int().positive().optional())
         .describe("Optional: filter transactions up to this block height"),
     }),
-    handler: getTransactionHistoryHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getTransactionHistoryHandler,
   });
 
   // get_staking_info
@@ -91,7 +91,7 @@ export function registerHttpTools(): void {
         )
         .describe("The currency to use for the displayed data"),
     }),
-    handler: getStakingInfoHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getStakingInfoHandler,
   });
 
   // get_token_info
@@ -108,7 +108,7 @@ export function registerHttpTools(): void {
         )
         .describe("The currency to use for the displayed data"),
     }),
-    handler: getTokenInfoHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getTokenInfoHandler,
   });
 
   // get_token_chart
@@ -131,7 +131,7 @@ export function registerHttpTools(): void {
         )
         .describe("Currency for price display (default: ADA)"),
     }),
-    handler: getTokenChartHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getTokenChartHandler,
   });
 
   // get_trending_tokens
@@ -156,7 +156,7 @@ export function registerHttpTools(): void {
         .preprocess((val) => (val === null || val === "" ? undefined : val), TrendingPeriodSchema.optional())
         .describe("Time period: 1M (1 min), 5M, 30M, 1H, 4H, 1D. Default varies by API."),
     }),
-    handler: getTrendingTokensHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getTrendingTokensHandler,
   });
 
   // resolve_ada_handle
@@ -167,7 +167,7 @@ export function registerHttpTools(): void {
     inputSchema: z.object({
       handle: z.string().describe("ADA handle to resolve (with or without $ prefix)"),
     }),
-    handler: resolveAdaHandleHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: resolveAdaHandleHandler,
   });
 
   // get_asset_metadata
@@ -178,7 +178,7 @@ export function registerHttpTools(): void {
     inputSchema: z.object({
       unit: z.string().describe("Asset unit (policy ID + asset name hex)"),
     }),
-    handler: getAssetMetadataHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getAssetMetadataHandler,
   });
 
   // get_asset_summary
@@ -187,9 +187,13 @@ export function registerHttpTools(): void {
     title: "Get Asset Summary",
     description: "Query summary information for a Cardano native asset including supply, holders, and transactions",
     inputSchema: z.object({
-      unit: z.string().describe("Asset unit (policy ID + asset name hex)"),
+      units: z
+        .array(z.string())
+        .describe(
+          "Array of asset unit identifiers (policy ID + hex-encoded asset name). Maximum 100 units per request.",
+        ),
     }),
-    handler: getAssetSummaryHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getAssetSummaryHandler,
   });
 
   // get_pool_info
@@ -200,6 +204,6 @@ export function registerHttpTools(): void {
     inputSchema: z.object({
       poolId: z.string().describe("Stake pool ID (bech32 format, pool1...)"),
     }),
-    handler: getPoolInfoHandler as (args: Record<string, unknown>) => Promise<HttpToolResult>,
+    handler: getPoolInfoHandler,
   });
 }

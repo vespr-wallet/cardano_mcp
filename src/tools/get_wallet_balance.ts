@@ -27,7 +27,13 @@ type BalanceOutput = z.infer<typeof balanceOutputSchema>;
 /**
  * Handler for get_wallet_balance tool
  */
-export async function getWalletBalanceHandler({ address, currency }: { address: string; currency: string }): Promise<{
+export async function getWalletBalanceHandler({
+  address,
+  currency,
+}: {
+  address: string;
+  currency: SupportedCurrency;
+}): Promise<{
   content: Array<{ type: "text"; text: string }>;
   structuredContent?: BalanceOutput;
   isError?: boolean;
@@ -45,22 +51,10 @@ export async function getWalletBalanceHandler({ address, currency }: { address: 
     };
   }
 
-  if (!SUPPORTED_CURRENCIES.includes(currency as SupportedCurrency)) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: "Error: Invalid currency. Currency must be one of the supported fiat currencies.",
-        },
-      ],
-      isError: true,
-    };
-  }
-
   try {
     const [walletData, spotPrice] = await Promise.all([
       VesprApiRepository.getDetailedWallet(address),
-      VesprApiRepository.getAdaSpotPrice(currency as SupportedCurrency),
+      VesprApiRepository.getAdaSpotPrice(currency),
     ]);
 
     const fiatSpotPrice = parseFloat(spotPrice.spot);
@@ -95,7 +89,7 @@ export async function getWalletBalanceHandler({ address, currency }: { address: 
     const portfolioValue = tokens.reduce((acc, token) => acc + (token.value ? parseFloat(token.value) : 0), 0);
 
     const output: BalanceOutput = {
-      currency: currency as SupportedCurrency,
+      currency,
       portfolio_value: portfolioValue.toFixed(2),
       tokens,
       handles: walletData.handles,

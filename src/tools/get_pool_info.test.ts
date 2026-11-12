@@ -112,41 +112,24 @@ describe("get_pool_info tool", () => {
 
       getPoolInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          pool_id: string;
-          name: string | null;
-          ticker: string | null;
-          state: string;
-          apy: number;
-          saturation: number;
-          delegators_count: number;
-          active_stake_ada: string;
-          live_stake_ada: string;
-          pledge_ada: string;
-          fixed_fee_ada: string;
-          variable_fee: number;
-          total_blocks: number;
-        };
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
       expect(getPoolInfoSpy).toHaveBeenCalledWith(testPoolId);
 
       // Check structured content
-      expect(result.structuredContent.pool_id).toBe(testPoolId);
-      expect(result.structuredContent.name).toBe("Test Pool");
-      expect(result.structuredContent.ticker).toBe("TEST");
-      expect(result.structuredContent.state).toBe("registered");
-      expect(result.structuredContent.apy).toBe(0.045);
-      expect(result.structuredContent.saturation).toBe(0.5);
-      expect(result.structuredContent.delegators_count).toBe(567);
-      expect(result.structuredContent.active_stake_ada).toBe("1000000.000000");
-      expect(result.structuredContent.live_stake_ada).toBe("1100000.000000");
-      expect(result.structuredContent.pledge_ada).toBe("500000.000000");
-      expect(result.structuredContent.fixed_fee_ada).toBe("340.000000");
-      expect(result.structuredContent.variable_fee).toBe(0.02);
-      expect(result.structuredContent.total_blocks).toBe(1234);
+      expect(result.structuredContent?.pool_id).toBe(testPoolId);
+      expect(result.structuredContent?.name).toBe("Test Pool");
+      expect(result.structuredContent?.ticker).toBe("TEST");
+      expect(result.structuredContent?.state).toBe("registered");
+      expect(result.structuredContent?.apy).toBe(0.045);
+      expect(result.structuredContent?.saturation).toBe(0.5);
+      expect(result.structuredContent?.delegators_count).toBe(567);
+      expect(result.structuredContent?.active_stake_ada).toBe("1000000.000000");
+      expect(result.structuredContent?.live_stake_ada).toBe("1100000.000000");
+      expect(result.structuredContent?.pledge_ada).toBe("500000.000000");
+      expect(result.structuredContent?.fixed_fee_ada).toBe("340.000000");
+      expect(result.structuredContent?.variable_fee).toBe(0.02);
+      expect(result.structuredContent?.total_blocks).toBe(1234);
 
       // Check text content includes key info
       expect(result.content[0].text).toContain("Pool: Test Pool (TEST)");
@@ -178,25 +161,16 @@ describe("get_pool_info tool", () => {
 
       getPoolInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          pool_id: string;
-          name: string | null;
-          ticker: string | null;
-          description: string | null;
-          homepage: string | null;
-        };
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
       expect(getPoolInfoSpy).toHaveBeenCalledWith(testPoolId);
 
       // Check structured content for null metadata
-      expect(result.structuredContent.pool_id).toBe(testPoolId);
-      expect(result.structuredContent.name).toBeNull();
-      expect(result.structuredContent.ticker).toBeNull();
-      expect(result.structuredContent.description).toBeNull();
-      expect(result.structuredContent.homepage).toBeNull();
+      expect(result.structuredContent?.pool_id).toBe(testPoolId);
+      expect(result.structuredContent?.name).toBeNull();
+      expect(result.structuredContent?.ticker).toBeNull();
+      expect(result.structuredContent?.description).toBeNull();
+      expect(result.structuredContent?.homepage).toBeNull();
 
       // Check text content uses fallbacks
       expect(result.content[0].text).toContain("Pool: Unknown Pool");
@@ -230,12 +204,9 @@ describe("get_pool_info tool", () => {
 
       getPoolInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { state: string };
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
-      expect(result.structuredContent.state).toBe("retiring");
+      expect(result.structuredContent?.state).toBe("retiring");
       expect(result.content[0].text).toContain("State: Retiring");
     });
 
@@ -266,12 +237,9 @@ describe("get_pool_info tool", () => {
 
       getPoolInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { state: string };
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
-      expect(result.structuredContent.state).toBe("retired");
+      expect(result.structuredContent?.state).toBe("retired");
       expect(result.content[0].text).toContain("State: Retired");
     });
 
@@ -308,10 +276,7 @@ describe("get_pool_info tool", () => {
     it("handles API errors gracefully", async () => {
       getPoolInfoSpy.mockRejectedValue(new VesprApiError("Internal server error", 500));
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Internal server error");
@@ -320,10 +285,7 @@ describe("get_pool_info tool", () => {
     it("handles 404 errors gracefully", async () => {
       getPoolInfoSpy.mockRejectedValue(new VesprApiError("Pool not found", 404));
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Pool not found");
@@ -332,10 +294,7 @@ describe("get_pool_info tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getPoolInfoSpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -344,10 +303,7 @@ describe("get_pool_info tool", () => {
     it("handles non-Error thrown values", async () => {
       getPoolInfoSpy.mockRejectedValue("String error");
 
-      const result = (await registeredHandler({ pool_id: testPoolId })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ pool_id: testPoolId });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");

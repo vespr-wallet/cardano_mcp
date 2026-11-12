@@ -1,17 +1,19 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { FastifyInstance, FastifyReply } from "fastify";
 import { z, ZodObject, ZodRawShape } from "zod";
 import { logger } from "../utils/logger.js";
 import { apiKeyContext } from "../utils/apiKeyContext.js";
+import { getHeader } from "../utils/headers.js";
 
 /**
- * Tool definition for HTTP transport
+ * Tool definition for HTTP transport. `handler` receives the arguments parsed by `inputSchema`,
+ * so schema defaults and preprocessing (e.g. "" -> default) apply and the argument types match.
  */
-export interface HttpToolDefinition {
+export interface HttpToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
   name: string;
   title: string;
   description: string;
-  inputSchema: ZodObject<ZodRawShape> | Record<string, never>;
-  handler: (args: Record<string, unknown>) => Promise<HttpToolResult>;
+  inputSchema: ZodObject<Shape>;
+  handler: (args: z.output<ZodObject<Shape>>) => Promise<HttpToolResult>;
 }
 
 /**
@@ -24,31 +26,62 @@ export interface HttpToolResult {
 }
 
 /**
+ * Outcome of validating raw arguments against a tool's input schema: either a call bound to the
+ * parsed arguments, or the validation issues.
+ */
+export type PreparedToolCall =
+  { success: true; run: () => Promise<HttpToolResult> } | { success: false; issues: z.ZodError["issues"] };
+
+/**
+ * A registered tool. The typed handler stays behind `prepare`, which parses the raw arguments
+ * with the tool's own schema before calling it.
+ */
+export interface RegisteredHttpTool {
+  name: string;
+  title: string;
+  description: string;
+  inputSchema: ZodObject<ZodRawShape>;
+  prepare: (rawArgs: Record<string, unknown>) => PreparedToolCall;
+}
+
+/**
  * Tool registry for HTTP transport
  * Maintains a separate registry of tools that can be called via HTTP
  */
 export class HttpToolRegistry {
-  private tools: Map<string, HttpToolDefinition> = new Map();
+  private tools: Map<string, RegisteredHttpTool> = new Map();
 
   /**
    * Register a tool with the HTTP registry
    */
-  registerTool(tool: HttpToolDefinition): void {
-    this.tools.set(tool.name, tool);
+  registerTool<Shape extends ZodRawShape>(tool: HttpToolDefinition<Shape>): void {
+    this.tools.set(tool.name, {
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      prepare: (rawArgs) => {
+        const parsed = tool.inputSchema.safeParse(rawArgs);
+        if (!parsed.success) {
+          return { success: false, issues: parsed.error.issues };
+        }
+        return { success: true, run: () => tool.handler(parsed.data) };
+      },
+    });
     logger.info("http_tool_registered", { tool: tool.name });
   }
 
   /**
    * Get a tool by name
    */
-  getTool(name: string): HttpToolDefinition | undefined {
+  getTool(name: string): RegisteredHttpTool | undefined {
     return this.tools.get(name);
   }
 
   /**
    * Get all registered tools
    */
-  getAllTools(): HttpToolDefinition[] {
+  getAllTools(): RegisteredHttpTool[] {
     return Array.from(this.tools.values());
   }
 
@@ -72,7 +105,7 @@ export class HttpToolRegistry {
       name: tool.name,
       title: tool.title,
       description: tool.description,
-      inputSchema: tool.inputSchema instanceof z.ZodObject ? tool.inputSchema.shape : {},
+      inputSchema: tool.inputSchema.shape,
     }));
   }
 }
@@ -101,7 +134,7 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
   /**
    * GET /tools - List all available tools
    */
-  server.get("/tools", async (_request: FastifyRequest, reply: FastifyReply) => {
+  server.get("/tools", async (_request, reply: FastifyReply) => {
     const startTime = Date.now();
 
     try {
@@ -137,9 +170,9 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
   server.post<{
     Params: ExecuteToolParams;
     Body: z.infer<typeof executeToolBodySchema>;
-  }>("/tools/:toolName", async (request: FastifyRequest, reply: FastifyReply) => {
+  }>("/tools/:toolName", async (request, reply) => {
     const startTime = Date.now();
-    const { toolName } = request.params as ExecuteToolParams;
+    const { toolName } = request.params;
 
     try {
       // Parse and validate request body
@@ -177,27 +210,23 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
         });
       }
 
-      // Validate tool arguments if schema is defined. The handler receives the parsed
-      // arguments so schema defaults and preprocessing (e.g. "" -> default) apply.
-      let args: Record<string, unknown> = bodyResult.data.arguments;
-      if (tool.inputSchema instanceof z.ZodObject) {
-        const argsResult = tool.inputSchema.safeParse(args);
-        if (!argsResult.success) {
-          logger.warn("http_tool_invalid_args", {
-            tool: toolName,
-            issues: argsResult.error.issues,
-            durationMs: Date.now() - startTime,
-          });
+      // Validate the arguments with the tool's schema; the handler receives the parsed arguments,
+      // so schema defaults and preprocessing (e.g. "" -> default) apply.
+      const call = tool.prepare(bodyResult.data.arguments);
+      if (!call.success) {
+        logger.warn("http_tool_invalid_args", {
+          tool: toolName,
+          issues: call.issues,
+          durationMs: Date.now() - startTime,
+        });
 
-          return reply.status(400).send({
-            error: {
-              code: "INVALID_ARGUMENTS",
-              message: "Invalid tool arguments",
-              details: argsResult.error.issues,
-            },
-          });
-        }
-        args = argsResult.data;
+        return reply.status(400).send({
+          error: {
+            code: "INVALID_ARGUMENTS",
+            message: "Invalid tool arguments",
+            details: call.issues,
+          },
+        });
       }
 
       logger.info("http_tool_executing", {
@@ -205,9 +234,9 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
         hasArgs: Object.keys(bodyResult.data.arguments).length > 0,
       });
 
-      const apiKey = (request.headers?.["x-api-key"] as string | undefined) || undefined;
+      const apiKey = getHeader(request.headers, "x-api-key");
 
-      const result = await apiKeyContext.run(apiKey, () => tool.handler(args));
+      const result = await apiKeyContext.run(apiKey, call.run);
 
       logger.info("http_tool_executed", {
         tool: toolName,

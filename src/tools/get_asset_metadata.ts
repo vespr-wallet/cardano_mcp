@@ -14,22 +14,23 @@ const assetMetadataOutputSchema = z.object({
 /**
  * Formats nested metadata as a human-readable string
  */
-function formatMetadata(metadata: Record<string, unknown>, indent: number = 0): string {
+function formatMetadata(metadata: object, indent: number = 0): string {
   const indentStr = "  ".repeat(indent);
   const lines: string[] = [];
 
-  for (const [key, value] of Object.entries(metadata)) {
+  const entries: Array<[string, unknown]> = Object.entries(metadata);
+  for (const [key, value] of entries) {
     if (value === null || value === undefined) {
       lines.push(`${indentStr}${key}: null`);
     } else if (typeof value === "object" && !Array.isArray(value)) {
       lines.push(`${indentStr}${key}:`);
-      lines.push(formatMetadata(value as Record<string, unknown>, indent + 1));
+      lines.push(formatMetadata(value, indent + 1));
     } else if (Array.isArray(value)) {
       lines.push(`${indentStr}${key}:`);
       for (const item of value) {
         if (typeof item === "object" && item !== null) {
           lines.push(`${indentStr}  -`);
-          lines.push(formatMetadata(item as Record<string, unknown>, indent + 2));
+          lines.push(formatMetadata(item, indent + 2));
         } else {
           lines.push(`${indentStr}  - ${String(item)}`);
         }

@@ -81,27 +81,17 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          subject: string;
-          name: string;
-          ticker: string | null;
-          price: number | null;
-          mcap: number | null;
-          verified: boolean;
-        };
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(getTokenInfoSpy).toHaveBeenCalledWith(validUnit, FiatCurrency.USD);
 
       // Check structured content
-      expect(result.structuredContent.subject).toBe(validUnit);
-      expect(result.structuredContent.name).toBe("Test Token");
-      expect(result.structuredContent.ticker).toBe("TEST");
-      expect(result.structuredContent.price).toBe(0.123456);
-      expect(result.structuredContent.mcap).toBe(123456789);
-      expect(result.structuredContent.verified).toBe(true);
+      expect(result.structuredContent?.subject).toBe(validUnit);
+      expect(result.structuredContent?.name).toBe("Test Token");
+      expect(result.structuredContent?.ticker).toBe("TEST");
+      expect(result.structuredContent?.price).toBe(0.123456);
+      expect(result.structuredContent?.mcap).toBe(123456789);
+      expect(result.structuredContent?.verified).toBe(true);
 
       // Check text content
       expect(result.content[0].text).toContain("Token: Test Token (TEST)");
@@ -133,19 +123,12 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          ticker: string | null;
-          price: number | null;
-          mcap: number | null;
-        };
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       // Check structured content has nulls
-      expect(result.structuredContent.ticker).toBeNull();
-      expect(result.structuredContent.price).toBeNull();
-      expect(result.structuredContent.mcap).toBeNull();
+      expect(result.structuredContent?.ticker).toBeNull();
+      expect(result.structuredContent?.price).toBeNull();
+      expect(result.structuredContent?.mcap).toBeNull();
 
       // Check text shows N/A for null values
       expect(result.content[0].text).toContain("Token: Unknown Token");
@@ -176,11 +159,7 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: unknown;
-        isError?: boolean;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(result.isError).toBeUndefined();
       expect(tokenInfoOutputSchema.safeParse(result.structuredContent).success).toBe(true);
@@ -205,10 +184,7 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: unknown;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(tokenInfoOutputSchema.safeParse(result.structuredContent).success).toBe(true);
       expect(result.structuredContent).toMatchObject({
@@ -243,10 +219,7 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: unknown;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(tokenInfoOutputSchema.safeParse(result.structuredContent).success).toBe(true);
       expect(result.structuredContent).toMatchObject({ circSupply: 5256000, mcap: 5256000, totalSupply: null });
@@ -277,9 +250,7 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit, currency: "EUR" })) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({ unit: validUnit, currency: FiatCurrency.EUR });
 
       expect(getTokenInfoSpy).toHaveBeenCalledWith(validUnit, FiatCurrency.EUR);
       expect(result.content[0].text).toContain("EUR");
@@ -306,9 +277,7 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       // Should show name without ticker parentheses
       expect(result.content[0].text).toContain("Token: No Ticker Token");
@@ -336,9 +305,7 @@ describe("get_token_info tool", () => {
 
       getTokenInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       // Check that large numbers are formatted with commas
       expect(result.content[0].text).toContain("1,234,567.89");
@@ -352,10 +319,7 @@ describe("get_token_info tool", () => {
     it("handles API errors gracefully", async () => {
       getTokenInfoSpy.mockRejectedValue(new VesprApiError("Token not found", 404));
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Token not found");
@@ -364,10 +328,7 @@ describe("get_token_info tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getTokenInfoSpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -376,31 +337,10 @@ describe("get_token_info tool", () => {
     it("handles non-Error objects gracefully", async () => {
       getTokenInfoSpy.mockRejectedValue("string error");
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");
     });
-  });
-});
-
-describe("getTokenInfoHandler currency validation", () => {
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it("rejects an unsupported currency without calling the API", async () => {
-    const spy = jest.spyOn(VesprApiRepository, "getTokenInfo");
-
-    const result = await getTokenInfoHandler({ unit: "unit123", currency: "DOGE" });
-
-    expect(result).toEqual({
-      content: [{ type: "text", text: "Error: Invalid currency. Must be one of the supported currencies." }],
-      isError: true,
-    });
-    expect(spy).not.toHaveBeenCalled();
   });
 });

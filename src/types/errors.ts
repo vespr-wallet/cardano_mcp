@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Error thrown when a VESPR API request fails.
  * Contains user-friendly messages for common error scenarios.
@@ -15,12 +17,15 @@ export class VesprApiError extends Error {
 }
 
 /**
- * API error response format from the backend
+ * API error response format from the backend. A field with the wrong type is dropped
+ * rather than failing the whole parse.
  */
-export interface ApiErrorResponse {
-  errorMessage?: string;
-  devErrorMessage?: string;
-}
+export const ApiErrorResponseSchema = z.object({
+  errorMessage: z.string().optional().catch(undefined),
+  devErrorMessage: z.string().optional().catch(undefined),
+});
+
+export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
 
 /**
  * Get fallback error message based on HTTP status code.

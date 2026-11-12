@@ -4,6 +4,7 @@ import sensible from "@fastify/sensible";
 import fastifyRateLimit from "@fastify/rate-limit";
 import { config } from "./config.js";
 import { logger } from "./utils/logger.js";
+import { getHeader } from "./utils/headers.js";
 import { registerHttpRoutes } from "./transports/http.js";
 import { registerStreamableHttpRoutes } from "./transports/streamableHttp.js";
 import { registerHttpTools } from "./tools/index.js";
@@ -70,10 +71,10 @@ async function configureServer(server: FastifyInstance): Promise<void> {
   registerHttpTools();
 
   const rateLimitKeyGenerator = (request: FastifyRequest): string =>
-    (request.headers["x-real-ip"] as string | undefined) ||
-    (request.headers["x-client-ip"] as string | undefined) ||
-    (request.headers["cf-connecting-ip"] as string | undefined) ||
-    (request.headers["do-connecting-ip"] as string | undefined) ||
+    getHeader(request.headers, "x-real-ip") ||
+    getHeader(request.headers, "x-client-ip") ||
+    getHeader(request.headers, "cf-connecting-ip") ||
+    getHeader(request.headers, "do-connecting-ip") ||
     (typeof request.headers["x-forwarded-for"] === "string"
       ? request.headers["x-forwarded-for"].split(",")[0].trim()
       : "") ||
