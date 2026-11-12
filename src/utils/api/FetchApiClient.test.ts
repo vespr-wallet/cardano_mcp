@@ -282,6 +282,42 @@ describe("FetchApiClient", () => {
   });
 
   describe("edge cases", () => {
+    it("aborts a request that exceeds requestTimeoutMs and reports a timeout", async () => {
+      const timeoutClient = new FetchApiClient({ ...defaultConfig, requestTimeoutMs: 20 });
+      let observedSignal: AbortSignal | undefined;
+      mockFetch.mockImplementationOnce(
+        (_url, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            observedSignal = init?.signal ?? undefined;
+            observedSignal?.addEventListener("abort", () => {
+              const abortError = new Error("The operation was aborted");
+              abortError.name = "AbortError";
+              reject(abortError);
+            });
+          }),
+      );
+
+      await expect(timeoutClient.get({ path: "/slow", schema: testSchema, context: "slow" })).rejects.toMatchObject({
+        name: "VesprApiError",
+        message: "Request timed out. Try again.",
+        statusCode: undefined,
+      });
+      expect(observedSignal?.aborted).toBe(true);
+    });
+
+    it.each([
+      ["a JSON string", JSON.stringify("oops")],
+      ["JSON null", "null"],
+    ])("uses the status fallback message when the error body is %s", async (_label, body) => {
+      mockFetch.mockResolvedValueOnce(new Response(body, { status: 404 }));
+
+      await expect(client.get({ path: "/missing", schema: testSchema, context: "missing" })).rejects.toMatchObject({
+        message: "The requested resource was not found.",
+        statusCode: 404,
+        devMessage: undefined,
+      });
+    });
+
     it("handles empty error response body", async () => {
       mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 400 }));
 

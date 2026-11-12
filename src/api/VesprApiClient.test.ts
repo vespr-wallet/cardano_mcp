@@ -3,6 +3,7 @@ import { VesprApiClient } from "./VesprApiClient.js";
 import { FetchApiClient } from "../utils/api/FetchApiClient.js";
 import { FiatCurrency, CryptoCurrency } from "../types/currency.js";
 import { config } from "../config.js";
+import { apiKeyContext } from "../utils/apiKeyContext.js";
 
 describe("VesprApiClient", () => {
   let client: VesprApiClient;
@@ -392,5 +393,54 @@ describe("VesprApiClient", () => {
         }),
       );
     });
+  });
+});
+
+describe("VesprApiClient API key resolution", () => {
+  const originalApiKey = config.apiKey;
+  let fetchSpy: jest.SpiedFunction<typeof fetch>;
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ currency: "EUR", spot: "0.3", spot1hAgo: null, spot24hAgo: null }), {
+          status: 200,
+        }),
+    );
+  });
+
+  afterEach(() => {
+    config.apiKey = originalApiKey;
+    jest.restoreAllMocks();
+  });
+
+  function sentApiKey(): string | undefined {
+    const init = fetchSpy.mock.calls[0]?.[1];
+    return new Headers(init?.headers).get("x-api-key") ?? undefined;
+  }
+
+  it("throws a helpful error when neither the request nor the environment provides a key", async () => {
+    config.apiKey = undefined;
+
+    await expect(new VesprApiClient().getAdaSpotPrice(FiatCurrency.EUR)).rejects.toThrow(
+      "VESPR API key is required. Provide it via X-API-Key header (HTTP) or VESPR_API_KEY environment variable (stdio/npx).",
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses the configured key when no request key is set", async () => {
+    config.apiKey = "env-key";
+
+    await new VesprApiClient().getAdaSpotPrice(FiatCurrency.EUR);
+
+    expect(sentApiKey()).toBe("env-key");
+  });
+
+  it("prefers the per-request key from the API key context over the configured key", async () => {
+    config.apiKey = "env-key";
+
+    await apiKeyContext.run("request-key", () => new VesprApiClient().getAdaSpotPrice(FiatCurrency.EUR));
+
+    expect(sentApiKey()).toBe("request-key");
   });
 });

@@ -337,4 +337,91 @@ describe("VesprApiRepository", () => {
       expect(fetchPoolInfoSpy).toHaveBeenCalledWith("pool1newpool...");
     });
   });
+
+  describe("caching", () => {
+    it("serves a repeated spot price request from cache", async () => {
+      const spot: AdaSpotPriceResponse = { currency: FiatCurrency.CHF, spot: "0.3", spot1hAgo: null, spot24hAgo: null };
+      getAdaSpotPriceSpy.mockResolvedValue(spot);
+
+      const first = await VesprApiRepository.getAdaSpotPrice(FiatCurrency.CHF);
+      const second = await VesprApiRepository.getAdaSpotPrice(FiatCurrency.CHF);
+
+      expect(second).toBe(first);
+      expect(getAdaSpotPriceSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("caches token info per unit and currency", async () => {
+      fetchTokenInfoSpy.mockImplementation(async (unit, currency): Promise<TokenInfoResponse> => ({
+        data: { subject: unit, name: "Cached", decimals: 0, verified: false, currency: currency ?? FiatCurrency.USD },
+      }));
+
+      await VesprApiRepository.getTokenInfo("cacheunit", FiatCurrency.USD);
+      const cachedUsd = await VesprApiRepository.getTokenInfo("cacheunit", FiatCurrency.USD);
+      const eur = await VesprApiRepository.getTokenInfo("cacheunit", FiatCurrency.EUR);
+
+      expect(cachedUsd.data.currency).toBe(FiatCurrency.USD);
+      expect(eur.data.currency).toBe(FiatCurrency.EUR);
+      expect(fetchTokenInfoSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("caches trending tokens per currency and period", async () => {
+      fetchTrendingTokensSpy.mockResolvedValue({ data: [] });
+
+      await VesprApiRepository.getTrendingTokens(FiatCurrency.AUD, "4H");
+      await VesprApiRepository.getTrendingTokens(FiatCurrency.AUD, "4H");
+      await VesprApiRepository.getTrendingTokens(FiatCurrency.AUD);
+      await VesprApiRepository.getTrendingTokens(FiatCurrency.AUD);
+
+      expect(fetchTrendingTokensSpy).toHaveBeenCalledTimes(2);
+      expect(fetchTrendingTokensSpy).toHaveBeenNthCalledWith(1, FiatCurrency.AUD, "4H");
+      expect(fetchTrendingTokensSpy).toHaveBeenNthCalledWith(2, FiatCurrency.AUD, undefined);
+    });
+
+    it("shares one handle cache entry regardless of $ prefix and case", async () => {
+      resolveAdaHandleSpy.mockResolvedValue({ owner: "addr1cached" });
+
+      await VesprApiRepository.resolveAdaHandle("$CacheHandle");
+      const cached = await VesprApiRepository.resolveAdaHandle("cachehandle");
+
+      expect(cached).toEqual({ owner: "addr1cached" });
+      expect(resolveAdaHandleSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("serves repeated asset metadata requests from cache", async () => {
+      fetchAssetMetadataSpy.mockResolvedValue({ name: "Cached Asset", onchain_metadata: null });
+
+      await VesprApiRepository.getAssetMetadata("cachedmetaunit");
+      const cached = await VesprApiRepository.getAssetMetadata("cachedmetaunit");
+
+      expect(cached).toEqual({ name: "Cached Asset", onchain_metadata: null });
+      expect(fetchAssetMetadataSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("serves repeated pool info requests from cache", async () => {
+      const pool: PoolInfoResponse = {
+        response_time_utc: 1,
+        pool_id_bech32: "pool1cached",
+        detail: null,
+        active_stake_lovelace: "1",
+        live_stake_lovelace: "1",
+        saturation: 1,
+        state: "registered",
+        apy: 0.01,
+        pledge: "1",
+        dtu: 1,
+        total_blocks: 1,
+        delegators_count: 1,
+        fixed_fee: "1",
+        variable_fee: 0.01,
+        history: [],
+      };
+      fetchPoolInfoSpy.mockResolvedValue(pool);
+
+      await VesprApiRepository.getPoolInfo("pool1cached");
+      const cached = await VesprApiRepository.getPoolInfo("pool1cached");
+
+      expect(cached).toEqual(pool);
+      expect(fetchPoolInfoSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

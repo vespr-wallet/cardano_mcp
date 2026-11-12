@@ -1,6 +1,6 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetStakingInfo } from "./get_staking_info.js";
+import { registerGetStakingInfo, getStakingInfoHandler } from "./get_staking_info.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import {
@@ -338,6 +338,73 @@ describe("get_staking_info tool", () => {
       expect(result.content[0].text).toContain("Balance: 15000.000000 ADA");
       expect(result.content[0].text).toContain("Suggested Pool: Comeback Pool (CMBC) - 4.12% APY");
       expect(result.content[0].text).toContain("Past Rewards: 3 payment(s)");
+    });
+  });
+
+  describe("responses without optional balance data", () => {
+    const validAddress =
+      "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv";
+
+    it("REGISTERED: reports null balance and staking address and a null next-reward ticker", async () => {
+      getStakingInfoSpy.mockResolvedValue({
+        runtime_type: "REGISTERED",
+        wallet_apy: 0.03,
+        total_rewards: "2000000",
+        active_pool: createMockPool(),
+        suggested_pool: null,
+        past_rewards: [],
+        future_rewards: [],
+        next_reward: createMockReward({ pool: { id_bech_32: "pool1next", ticker: null } }),
+      });
+
+      const result = await getStakingInfoHandler({ address: validAddress });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toEqual(
+        expect.objectContaining({
+          stakingAddress: null,
+          balanceAda: null,
+          nextReward: expect.objectContaining({ poolId: "pool1next", poolTicker: null }),
+        }),
+      );
+      expect(result.content[0].text).not.toContain("Balance:");
+    });
+
+    it("DEREGISTERED: omits the balance line when lovelace is missing", async () => {
+      getStakingInfoSpy.mockResolvedValue({
+        runtime_type: "DEREGISTERED",
+        total_rewards: "0",
+        suggested_pool: createMockPool(),
+        past_rewards: [],
+      });
+
+      const result = await getStakingInfoHandler({ address: validAddress });
+
+      expect(result.structuredContent).toEqual(expect.objectContaining({ status: "DEREGISTERED", balanceAda: null }));
+      expect(result.content[0].text).toContain("Staking Status: Deregistered");
+      expect(result.content[0].text).not.toContain("Balance:");
+    });
+
+    it("NEVER_REGISTERED: omits the balance line when lovelace is empty", async () => {
+      getStakingInfoSpy.mockResolvedValue({
+        runtime_type: "NEVER_REGISTERED",
+        staking_address: "stake1never",
+        lovelace: "",
+        response_time_utc: 1700000000000,
+        epoch_start_time_utc: 1699900000000,
+        epoch_end_time_utc: 1700500000000,
+        first_reward_time_utc: 1700600000000,
+        average_apy: 0.03,
+        suggested_pool: createMockPool(),
+      });
+
+      const result = await getStakingInfoHandler({ address: validAddress });
+
+      expect(result.structuredContent).toEqual(
+        expect.objectContaining({ stakingAddress: "stake1never", balanceAda: null }),
+      );
+      expect(result.content[0].text).toContain("Staking Status: Never Registered");
+      expect(result.content[0].text).not.toContain("Balance:");
     });
   });
 

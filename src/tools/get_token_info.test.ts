@@ -1,6 +1,6 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetTokenInfo } from "./get_token_info.js";
+import { registerGetTokenInfo, getTokenInfoHandler } from "./get_token_info.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import { TokenInfoResponseSchema, type TokenInfoResponse } from "../types/api/schemas.js";
@@ -389,5 +389,23 @@ describe("get_token_info tool", () => {
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");
     });
+  });
+});
+
+describe("getTokenInfoHandler currency validation", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("rejects an unsupported currency without calling the API", async () => {
+    const spy = jest.spyOn(VesprApiRepository, "getTokenInfo");
+
+    const result = await getTokenInfoHandler({ unit: "unit123", currency: "DOGE" });
+
+    expect(result).toEqual({
+      content: [{ type: "text", text: "Error: Invalid currency. Must be one of the supported currencies." }],
+      isError: true,
+    });
+    expect(spy).not.toHaveBeenCalled();
   });
 });
