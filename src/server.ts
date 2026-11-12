@@ -1,4 +1,4 @@
-import Fastify, { FastifyInstance, FastifyRequest } from "fastify";
+import Fastify, { FastifyInstance, FastifyRequest, LogController } from "fastify";
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
 import fastifyRateLimit from "@fastify/rate-limit";
@@ -8,6 +8,7 @@ import { registerHttpRoutes } from "./transports/http.js";
 import { registerStreamableHttpRoutes } from "./transports/streamableHttp.js";
 import { registerHttpTools } from "./tools/index.js";
 import { createDualWindowStore } from "./middleware/rateLimit.js";
+import { VERSION } from "./version.js";
 
 let serverStartTime: number | null = null;
 
@@ -22,7 +23,8 @@ export function createServer(): FastifyInstance {
       // Output to stderr (stdout reserved for MCP protocol)
       stream: process.stderr,
     },
-    disableRequestLogging: true, // We'll use our own structured logging
+    // We'll use our own structured logging
+    logController: new LogController({ disableRequestLogging: true }),
   });
 
   return server;
@@ -111,7 +113,7 @@ export async function startServer(): Promise<FastifyInstance> {
   logger.info("http_server_started", {
     port,
     host,
-    version: "0.1.0",
+    version: VERSION,
   });
 
   return server;

@@ -5,8 +5,7 @@ import { registerTools } from "./tools/index.js";
 import { config } from "./config.js";
 import { startServer } from "./server.js";
 import { logger } from "./utils/logger.js";
-
-const VERSION = "0.1.0";
+import { VERSION } from "./version.js";
 
 /**
  * Create and configure the MCP server instance

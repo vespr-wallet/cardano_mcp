@@ -49,7 +49,7 @@ That's it — no API key required when using the hosted server.
 
 ## Option 2: NPX — works with Claude Desktop
 
-Run the server as a local subprocess using `npx`. Requires a VESPR API key.
+Run the server as a local subprocess using `npx`. Requires Node.js 22 or later and a VESPR API key.
 
 ### Get a VESPR API Key
 
@@ -126,6 +126,8 @@ Or via stdio for Claude Desktop:
 ```
 
 ### From source
+
+Requires Node.js 22 or later.
 
 ```bash
 git clone https://github.com/vespr-wallet/cardano_mcp.git

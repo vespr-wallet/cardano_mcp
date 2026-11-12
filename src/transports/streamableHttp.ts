@@ -5,8 +5,8 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { registerTools } from "../tools/index.js";
 import { apiKeyContext } from "../utils/apiKeyContext.js";
 import { logger } from "../utils/logger.js";
+import { VERSION } from "../version.js";
 
-const VERSION = "0.1.0";
 const SESSION_CLEANUP_INTERVAL_MS = 60_000;
 
 interface Session {
