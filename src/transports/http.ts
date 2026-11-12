@@ -177,8 +177,9 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
         });
       }
 
-      // Validate tool arguments if schema is defined
-      const args = bodyResult.data.arguments;
+      // Validate tool arguments if schema is defined. The handler receives the parsed
+      // arguments so schema defaults and preprocessing (e.g. "" -> default) apply.
+      let args: Record<string, unknown> = bodyResult.data.arguments;
       if (tool.inputSchema instanceof z.ZodObject) {
         const argsResult = tool.inputSchema.safeParse(args);
         if (!argsResult.success) {
@@ -196,11 +197,12 @@ export async function registerHttpRoutes(server: FastifyInstance): Promise<void>
             },
           });
         }
+        args = argsResult.data;
       }
 
       logger.info("http_tool_executing", {
         tool: toolName,
-        hasArgs: Object.keys(args).length > 0,
+        hasArgs: Object.keys(bodyResult.data.arguments).length > 0,
       });
 
       const apiKey = (request.headers?.["x-api-key"] as string | undefined) || undefined;

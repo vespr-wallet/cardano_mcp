@@ -1,6 +1,6 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetTrendingTokens } from "./get_trending_tokens.js";
+import { registerGetTrendingTokens, getTrendingTokensHandler } from "./get_trending_tokens.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import type { TrendingTokensResponse, TrendingPeriod } from "../types/api/schemas.js";
@@ -370,5 +370,48 @@ describe("get_trending_tokens tool", () => {
       expect(result.structuredContent.tokens).toHaveLength(1);
       expect(result.structuredContent.tokens[0].name).toBe("Top Token");
     });
+  });
+});
+
+describe("getTrendingTokensHandler formatting", () => {
+  const token = (price: number): TrendingTokensResponse["data"][0] => ({
+    policy: "policy",
+    hex_asset_name: "54455354",
+    name: "Priced Token",
+    ticker: "PRC",
+    verified: false,
+    decimals: 6,
+    ada_per_adjusted_unit: price,
+    period_ada_price_change_percentage: 0,
+    period_volume_ada: 10,
+    period_buys_count: 1,
+    period_sales_count: 1,
+    chart_data: null,
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    [0.001234567, "0.001235"],
+    [0.5, "0.5000"],
+    [1234.5, "1,234.50"],
+  ])("formats a price of %p as %p", async (price, expected) => {
+    jest.spyOn(VesprApiRepository, "getTrendingTokens").mockResolvedValue({ data: [token(price)] });
+
+    const result = await getTrendingTokensHandler({ currency: FiatCurrency.USD });
+
+    expect(result.content[0].text).toContain(`Price: ${expected} USD`);
+  });
+
+  it("names the period in the header when no tokens are found", async () => {
+    jest.spyOn(VesprApiRepository, "getTrendingTokens").mockResolvedValue({ data: [] });
+
+    const result = await getTrendingTokensHandler({ period: "4H" });
+
+    expect(result.content[0].text).toContain("Trending Tokens (4H)");
+    expect(result.content[0].text).toContain("No trending tokens found");
+    expect(result.structuredContent).toEqual(expect.objectContaining({ period: "4H", tokens: [] }));
   });
 });
