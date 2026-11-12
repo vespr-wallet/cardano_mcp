@@ -1,7 +1,8 @@
-import { jest, describe, it, expect, beforeEach } from "@jest/globals";
-import { FastifyInstance } from "fastify";
+import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
+import Fastify, { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { HttpToolRegistry, httpToolRegistry, registerHttpRoutes, HttpToolResult } from "./http.js";
+import { getCurrentApiKey } from "../utils/apiKeyContext.js";
 
 // Mock logger to avoid console output during tests
 jest.mock("../utils/logger.js", () => ({
@@ -445,5 +446,168 @@ describe("registerHttpRoutes", () => {
 describe("Global httpToolRegistry", () => {
   it("should be a singleton instance", () => {
     expect(httpToolRegistry).toBeInstanceOf(HttpToolRegistry);
+  });
+});
+
+describe("registerHttpRoutes over a real Fastify instance", () => {
+  let server: FastifyInstance;
+
+  const textResult = (text: string): HttpToolResult => ({ content: [{ type: "text", text }] });
+
+  beforeEach(async () => {
+    httpToolRegistry.clear();
+    server = Fastify();
+    await registerHttpRoutes(server);
+    await server.ready();
+  });
+
+  afterEach(async () => {
+    await server.close();
+    httpToolRegistry.clear();
+    jest.restoreAllMocks();
+  });
+
+  it("returns 500 INTERNAL_ERROR when listing tools throws", async () => {
+    jest.spyOn(httpToolRegistry, "listTools").mockImplementation(() => {
+      throw new Error("registry exploded");
+    });
+
+    const response = await server.inject({ method: "GET", url: "/tools" });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      error: { code: "INTERNAL_ERROR", message: "Failed to list tools" },
+    });
+  });
+
+  it("lists the tool names that exist when a tool is not found", async () => {
+    httpToolRegistry.registerTool({
+      name: "known_tool",
+      title: "Known",
+      description: "Known tool",
+      inputSchema: {},
+      handler: async () => textResult("ok"),
+    });
+
+    const response = await server.inject({ method: "POST", url: "/tools/missing_tool", payload: {} });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: {
+        code: "TOOL_NOT_FOUND",
+        message: "Tool 'missing_tool' not found",
+        availableTools: ["known_tool"],
+      },
+    });
+  });
+
+  it("maps a tool result flagged isError to 502 TOOL_ERROR joining all text parts", async () => {
+    httpToolRegistry.registerTool({
+      name: "failing_tool",
+      title: "Failing",
+      description: "Returns an error result",
+      inputSchema: {},
+      handler: async () => ({
+        content: [
+          { type: "text", text: "Error: upstream down" },
+          { type: "text", text: "Try again later" },
+        ],
+        isError: true,
+      }),
+    });
+
+    const response = await server.inject({ method: "POST", url: "/tools/failing_tool", payload: {} });
+
+    expect(response.statusCode).toBe(502);
+    expect(response.json()).toEqual({
+      error: { code: "TOOL_ERROR", message: "Error: upstream down\nTry again later" },
+    });
+  });
+
+  it("maps a thrown 'not found' error to 404 NOT_FOUND", async () => {
+    httpToolRegistry.registerTool({
+      name: "lookup_tool",
+      title: "Lookup",
+      description: "Throws a not-found error",
+      inputSchema: {},
+      handler: async () => {
+        throw new Error("Asset not found in index");
+      },
+    });
+
+    const response = await server.inject({ method: "POST", url: "/tools/lookup_tool", payload: {} });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({
+      error: { code: "NOT_FOUND", message: "Asset not found in index" },
+    });
+  });
+
+  it("maps a thrown non-Error value to 500 with a generic message", async () => {
+    httpToolRegistry.registerTool({
+      name: "weird_tool",
+      title: "Weird",
+      description: "Throws a string",
+      inputSchema: {},
+      handler: () => Promise.reject("plain string failure"),
+    });
+
+    const response = await server.inject({ method: "POST", url: "/tools/weird_tool", payload: {} });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      error: { code: "EXECUTION_ERROR", message: "Tool execution failed" },
+    });
+  });
+
+  it("makes the X-API-Key header available to the handler through the API key context", async () => {
+    const seenKeys: Array<string | undefined> = [];
+    httpToolRegistry.registerTool({
+      name: "key_tool",
+      title: "Key",
+      description: "Records the API key it runs with",
+      inputSchema: {},
+      handler: async () => {
+        seenKeys.push(getCurrentApiKey());
+        return textResult("ok");
+      },
+    });
+
+    await server.inject({
+      method: "POST",
+      url: "/tools/key_tool",
+      headers: { "x-api-key": "user-key-123" },
+      payload: {},
+    });
+    await server.inject({ method: "POST", url: "/tools/key_tool", payload: {} });
+
+    expect(seenKeys).toEqual(["user-key-123", undefined]);
+  });
+
+  it("passes the schema-parsed arguments, with defaults and preprocessing applied, to the handler", async () => {
+    const received: Array<Record<string, unknown>> = [];
+    httpToolRegistry.registerTool({
+      name: "defaults_tool",
+      title: "Defaults",
+      description: "Records the arguments it receives",
+      inputSchema: z.object({
+        unit: z.string(),
+        currency: z.preprocess((val) => (val === "" ? undefined : val), z.string().default("USD")),
+        period: z.string().default("24H"),
+      }),
+      handler: async (args) => {
+        received.push(args);
+        return textResult("ok");
+      },
+    });
+
+    const response = await server.inject({
+      method: "POST",
+      url: "/tools/defaults_tool",
+      payload: { arguments: { unit: "abc", currency: "" } },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(received).toEqual([{ unit: "abc", currency: "USD", period: "24H" }]);
   });
 });
