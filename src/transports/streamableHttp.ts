@@ -61,6 +61,24 @@ function getOrCreateSession(
 }
 
 /**
+ * Take over the raw response for the MCP transport.
+ *
+ * Headers set by Fastify hooks (such as the CORS headers) live on the Fastify reply and are only
+ * flushed by reply.send(), which hijacked replies never call, so copy them onto the raw response
+ * before the transport writes to it.
+ */
+function hijackReply(reply: FastifyReply): void {
+  if (!reply.raw.headersSent) {
+    for (const [name, value] of Object.entries(reply.getHeaders())) {
+      if (value !== undefined) {
+        reply.raw.setHeader(name, value);
+      }
+    }
+  }
+  reply.hijack();
+}
+
+/**
  * Answer a failed MCP request with a 500.
  *
  * The routes hijack the reply before handing the raw response to the MCP transport, after which
@@ -69,7 +87,7 @@ function getOrCreateSession(
  * If the transport already started the response, it can only be terminated.
  */
 function sendInternalServerError(reply: FastifyReply): void {
-  reply.hijack();
+  hijackReply(reply);
   const res = reply.raw;
   if (!res.headersSent) {
     res.writeHead(500, { "content-type": "application/json" });
@@ -109,7 +127,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
       const { session } = getOrCreateSession(sessionId, apiKey);
       session.lastActiveAt = Date.now();
 
-      reply.hijack();
+      hijackReply(reply);
 
       await apiKeyContext.run(session.apiKey, async () => {
         await session.transport.handleRequest(request.raw, reply.raw, request.body);
@@ -136,7 +154,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
     session.lastActiveAt = Date.now();
 
     try {
-      reply.hijack();
+      hijackReply(reply);
 
       await apiKeyContext.run(session.apiKey, async () => {
         await session.transport.handleRequest(request.raw, reply.raw);
@@ -162,7 +180,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
     }
 
     try {
-      reply.hijack();
+      hijackReply(reply);
 
       await session.transport.handleRequest(request.raw, reply.raw);
 

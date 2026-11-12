@@ -3,6 +3,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { createServer, startServer, stopServer } from "./server.js";
 import { config } from "./config.js";
+import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
 
 const originalConfig = { ...config, allowedOrigins: [...config.allowedOrigins] };
 
@@ -193,6 +194,38 @@ describe("server", () => {
         expect(response.headers["access-control-allow-headers"]).toBe(
           "Content-Type, Authorization, x-api-key, mcp-session-id",
         );
+      });
+
+      it("sends the CORS headers on MCP endpoint responses so browsers can read them", async () => {
+        const address = server.server.address();
+        if (address === null || typeof address === "string") {
+          throw new Error("Expected a TCP address");
+        }
+
+        const response = await fetch(`http://127.0.0.1:${address.port}/`, {
+          method: "POST",
+          headers: {
+            origin: "https://app.example",
+            accept: "application/json, text/event-stream",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "initialize",
+            params: {
+              protocolVersion: LATEST_PROTOCOL_VERSION,
+              capabilities: {},
+              clientInfo: { name: "browser", version: "0.0.0" },
+            },
+          }),
+        });
+        await response.text();
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get("mcp-session-id")).toEqual(expect.any(String));
+        expect(response.headers.get("access-control-allow-origin")).toBe("https://app.example");
+        expect(response.headers.get("access-control-expose-headers")).toBe("mcp-session-id");
       });
 
       it("allows requests that carry no Origin header", async () => {
