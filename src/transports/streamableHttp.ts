@@ -21,8 +21,9 @@ function getOrCreateSession(
   sessionId: string | undefined,
   apiKey: string | undefined,
 ): { session: Session; isNew: boolean } {
-  if (sessionId && sessions.has(sessionId)) {
-    return { session: sessions.get(sessionId)!, isNew: false };
+  const existing = sessionId ? sessions.get(sessionId) : undefined;
+  if (existing) {
+    return { session: existing, isNew: false };
   }
 
   const transport = new StreamableHTTPServerTransport({
@@ -57,6 +58,25 @@ function getOrCreateSession(
   const session: Session = { transport, apiKey, lastActiveAt: Date.now() };
 
   return { session, isNew: true };
+}
+
+/**
+ * Answer a failed MCP request with a 500.
+ *
+ * The routes hijack the reply before handing the raw response to the MCP transport, after which
+ * Fastify's reply.send() is a no-op (reply.sent is true), so the error is written to the raw
+ * response directly. hijack() is idempotent and also covers errors raised before the hand-off.
+ * If the transport already started the response, it can only be terminated.
+ */
+function sendInternalServerError(reply: FastifyReply): void {
+  reply.hijack();
+  const res = reply.raw;
+  if (!res.headersSent) {
+    res.writeHead(500, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "Internal server error" }));
+  } else if (!res.writableEnded) {
+    res.end();
+  }
 }
 
 export async function registerStreamableHttpRoutes(server: FastifyInstance, sessionTtlMs: number): Promise<void> {
@@ -100,24 +120,19 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
         sessionId,
       });
 
-      if (!reply.sent) {
-        return reply.status(500).send({
-          error: "Internal server error",
-        });
-      }
+      sendInternalServerError(reply);
     }
   });
 
   server.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
 
-    if (!sessionId || !sessions.has(sessionId)) {
+    const session = sessionId ? sessions.get(sessionId) : undefined;
+    if (!sessionId || !session) {
       return reply.status(404).send({
         error: "Invalid or expired session ID",
       });
     }
-
-    const session = sessions.get(sessionId)!;
     session.lastActiveAt = Date.now();
 
     try {
@@ -132,24 +147,19 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
         sessionId,
       });
 
-      if (!reply.sent) {
-        return reply.status(500).send({
-          error: "Internal server error",
-        });
-      }
+      sendInternalServerError(reply);
     }
   });
 
   server.delete("/", async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
 
-    if (!sessionId || !sessions.has(sessionId)) {
+    const session = sessionId ? sessions.get(sessionId) : undefined;
+    if (!sessionId || !session) {
       return reply.status(404).send({
         error: "Invalid or expired session ID",
       });
     }
-
-    const session = sessions.get(sessionId)!;
 
     try {
       reply.hijack();
@@ -164,11 +174,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
         sessionId,
       });
 
-      if (!reply.sent) {
-        return reply.status(500).send({
-          error: "Internal server error",
-        });
-      }
+      sendInternalServerError(reply);
     }
   });
 

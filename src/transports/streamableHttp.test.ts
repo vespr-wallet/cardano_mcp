@@ -3,6 +3,8 @@ import Fastify, { FastifyInstance } from "fastify";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerStreamableHttpRoutes } from "./streamableHttp.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { getCurrentApiKey } from "../utils/apiKeyContext.js";
@@ -160,6 +162,83 @@ describe("registerStreamableHttpRoutes", () => {
 
       expect(result.isError).toBeFalsy();
       expect(seenKeys).toEqual(["session-key-1", undefined]);
+    });
+  });
+
+  describe("transport failures", () => {
+    // Before the fix these requests never got an answer; the timeout turns a hang into a failure.
+    const HANG_TIMEOUT_MS = 3_000;
+
+    beforeEach(async () => {
+      await startServer(3_600_000);
+    });
+
+    function request(method: "GET" | "POST" | "DELETE", sessionId?: string): Promise<Response> {
+      return fetch(baseUrl, {
+        method,
+        headers: {
+          accept: "application/json, text/event-stream",
+          "mcp-protocol-version": LATEST_PROTOCOL_VERSION,
+          ...(sessionId ? { "mcp-session-id": sessionId } : {}),
+          ...(method === "POST" ? { "content-type": "application/json" } : {}),
+        },
+        body: method === "POST" ? JSON.stringify(listToolsRequest) : undefined,
+        signal: AbortSignal.timeout(HANG_TIMEOUT_MS),
+      });
+    }
+
+    async function expectInternalServerError(response: Response): Promise<void> {
+      expect(response.status).toBe(500);
+      expect(response.headers.get("content-type")).toMatch(/^application\/json/);
+      expect(await response.json()).toEqual({ error: "Internal server error" });
+    }
+
+    /** Connects a client, then releases its connections so only the test's own request reaches the server. */
+    async function liveSessionId(): Promise<string> {
+      const { client, sessionId } = await connectClient();
+      await client.close();
+      return sessionId;
+    }
+
+    it("POST answers 500 when the transport throws before writing a response", async () => {
+      jest.spyOn(StreamableHTTPServerTransport.prototype, "handleRequest").mockRejectedValueOnce(new Error("boom"));
+
+      await expectInternalServerError(await request("POST"));
+    });
+
+    it("POST answers 500 when creating the session fails before the reply is hijacked", async () => {
+      jest.spyOn(McpServer.prototype, "registerTool").mockImplementationOnce(() => {
+        throw new Error("tool registration failed");
+      });
+
+      await expectInternalServerError(await request("POST"));
+    });
+
+    it("POST terminates the response when the transport throws after starting it", async () => {
+      jest.spyOn(StreamableHTTPServerTransport.prototype, "handleRequest").mockImplementationOnce(async (_req, res) => {
+        res.writeHead(200, { "content-type": "text/event-stream" });
+        res.write("event: message\n\n");
+        throw new Error("failed mid-stream");
+      });
+
+      const response = await request("POST");
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("event: message\n\n");
+    });
+
+    it("GET answers 500 when the transport throws", async () => {
+      const sessionId = await liveSessionId();
+      jest.spyOn(StreamableHTTPServerTransport.prototype, "handleRequest").mockRejectedValueOnce(new Error("boom"));
+
+      await expectInternalServerError(await request("GET", sessionId));
+    });
+
+    it("DELETE answers 500 when the transport throws", async () => {
+      const sessionId = await liveSessionId();
+      jest.spyOn(StreamableHTTPServerTransport.prototype, "handleRequest").mockRejectedValueOnce(new Error("boom"));
+
+      await expectInternalServerError(await request("DELETE", sessionId));
     });
   });
 
