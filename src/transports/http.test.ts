@@ -156,6 +156,15 @@ describe("registerHttpRoutes", () => {
   let mockServer: Partial<FastifyInstance>;
   let registeredRoutes: Map<string, { method: string; handler: Function }>;
 
+  // Fails the test with a clear message when the route was never registered
+  const getRoute = (key: string): { method: string; handler: Function } => {
+    const route = registeredRoutes.get(key);
+    if (!route) {
+      throw new Error(`Route ${key} was not registered`);
+    }
+    return route;
+  };
+
   beforeEach(() => {
     registeredRoutes = new Map();
 
@@ -197,15 +206,14 @@ describe("registerHttpRoutes", () => {
 
       await registerHttpRoutes(mockServer as FastifyInstance);
 
-      const route = registeredRoutes.get("GET /tools");
-      expect(route).toBeDefined();
+      const route = getRoute("GET /tools");
 
       const mockReply = {
         send: jest.fn(),
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler({}, mockReply);
+      await route.handler({}, mockReply);
 
       expect(mockReply.send).toHaveBeenCalledWith({
         tools: expect.arrayContaining([
@@ -222,13 +230,13 @@ describe("registerHttpRoutes", () => {
     it("should return empty list when no tools registered", async () => {
       await registerHttpRoutes(mockServer as FastifyInstance);
 
-      const route = registeredRoutes.get("GET /tools");
+      const route = getRoute("GET /tools");
       const mockReply = {
         send: jest.fn(),
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler({}, mockReply);
+      await route.handler({}, mockReply);
 
       expect(mockReply.send).toHaveBeenCalledWith({
         tools: [],
@@ -257,8 +265,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should execute a tool and return result", async () => {
-      const route = registeredRoutes.get("POST /tools/:toolName");
-      expect(route).toBeDefined();
+      const route = getRoute("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "echo_tool" },
@@ -269,7 +276,7 @@ describe("registerHttpRoutes", () => {
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler(mockRequest, mockReply);
+      await route.handler(mockRequest, mockReply);
 
       expect(mockReply.send).toHaveBeenCalledWith({
         result: { echoed: "hello" },
@@ -277,7 +284,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 404 for non-existent tool", async () => {
-      const route = registeredRoutes.get("POST /tools/:toolName");
+      const route = getRoute("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "non_existent_tool" },
@@ -288,7 +295,7 @@ describe("registerHttpRoutes", () => {
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler(mockRequest, mockReply);
+      await route.handler(mockRequest, mockReply);
 
       expect(mockReply.status).toHaveBeenCalledWith(404);
       expect(mockReply.send).toHaveBeenCalledWith({
@@ -301,7 +308,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 400 for invalid request body", async () => {
-      const route = registeredRoutes.get("POST /tools/:toolName");
+      const route = getRoute("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "echo_tool" },
@@ -312,7 +319,7 @@ describe("registerHttpRoutes", () => {
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler(mockRequest, mockReply);
+      await route.handler(mockRequest, mockReply);
 
       expect(mockReply.status).toHaveBeenCalledWith(400);
       expect(mockReply.send).toHaveBeenCalledWith({
@@ -325,7 +332,7 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 400 for invalid tool arguments", async () => {
-      const route = registeredRoutes.get("POST /tools/:toolName");
+      const route = getRoute("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "echo_tool" },
@@ -336,7 +343,7 @@ describe("registerHttpRoutes", () => {
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler(mockRequest, mockReply);
+      await route.handler(mockRequest, mockReply);
 
       expect(mockReply.status).toHaveBeenCalledWith(400);
       expect(mockReply.send).toHaveBeenCalledWith({
@@ -360,7 +367,7 @@ describe("registerHttpRoutes", () => {
         },
       });
 
-      const route = registeredRoutes.get("POST /tools/:toolName");
+      const route = getRoute("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "error_tool" },
@@ -371,7 +378,7 @@ describe("registerHttpRoutes", () => {
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler(mockRequest, mockReply);
+      await route.handler(mockRequest, mockReply);
 
       expect(mockReply.status).toHaveBeenCalledWith(500);
       expect(mockReply.send).toHaveBeenCalledWith({
@@ -393,7 +400,7 @@ describe("registerHttpRoutes", () => {
         }),
       });
 
-      const route = registeredRoutes.get("POST /tools/:toolName");
+      const route = getRoute("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "text_only_tool" },
@@ -404,7 +411,7 @@ describe("registerHttpRoutes", () => {
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler(mockRequest, mockReply);
+      await route.handler(mockRequest, mockReply);
 
       expect(mockReply.send).toHaveBeenCalledWith({
         result: [{ type: "text", text: "Just text" }],
@@ -423,7 +430,7 @@ describe("registerHttpRoutes", () => {
         }),
       });
 
-      const route = registeredRoutes.get("POST /tools/:toolName");
+      const route = getRoute("POST /tools/:toolName");
 
       const mockRequest = {
         params: { toolName: "no_args_tool" },
@@ -434,7 +441,7 @@ describe("registerHttpRoutes", () => {
         status: jest.fn().mockReturnThis(),
       };
 
-      await route!.handler(mockRequest, mockReply);
+      await route.handler(mockRequest, mockReply);
 
       expect(mockReply.send).toHaveBeenCalledWith({
         result: { success: true },
