@@ -1,4 +1,4 @@
-import Fastify, { FastifyInstance, FastifyRequest } from "fastify";
+import Fastify, { FastifyInstance, FastifyRequest, LogController } from "fastify";
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
 import fastifyRateLimit from "@fastify/rate-limit";
@@ -23,7 +23,8 @@ export function createServer(): FastifyInstance {
       // Output to stderr (stdout reserved for MCP protocol)
       stream: process.stderr,
     },
-    disableRequestLogging: true, // We'll use our own structured logging
+    // We'll use our own structured logging
+    logController: new LogController({ disableRequestLogging: true }),
   });
 
   return server;
