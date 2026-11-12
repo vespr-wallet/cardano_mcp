@@ -1,6 +1,11 @@
 import type { z } from "zod";
 import { logger } from "../logger.js";
-import { VesprApiError, getFallbackErrorMessage, type ApiErrorResponse } from "../../types/errors.js";
+import {
+  VesprApiError,
+  getFallbackErrorMessage,
+  ApiErrorResponseSchema,
+  type ApiErrorResponse,
+} from "../../types/errors.js";
 
 export interface FetchApiClientConfig {
   baseUrl: string;
@@ -108,9 +113,9 @@ export class FetchApiClient {
     let apiError: ApiErrorResponse | undefined;
 
     try {
-      const body = await response.json();
-      if (body && typeof body === "object") {
-        apiError = body as ApiErrorResponse;
+      const parsed = ApiErrorResponseSchema.safeParse(await response.json());
+      if (parsed.success) {
+        apiError = parsed.data;
       }
     } catch {
       // Failed to parse error response body - use fallback message

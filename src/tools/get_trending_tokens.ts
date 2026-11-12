@@ -87,8 +87,8 @@ export async function getTrendingTokensHandler({
   period,
   limit,
 }: {
-  currency?: string;
-  period?: string;
+  currency?: SupportedCurrency;
+  period?: TrendingPeriod;
   limit?: number;
 }): Promise<{
   content: Array<{ type: "text"; text: string }>;
@@ -96,14 +96,11 @@ export async function getTrendingTokensHandler({
   isError?: boolean;
 }> {
   // Use default values if not specified
-  const effectiveCurrency = (currency as SupportedCurrency) ?? FiatCurrency.USD;
+  const effectiveCurrency = currency ?? FiatCurrency.USD;
   const effectiveLimit = limit ?? 10;
 
   try {
-    const response = await VesprApiRepository.getTrendingTokens(
-      effectiveCurrency,
-      period as TrendingPeriod | undefined,
-    );
+    const response = await VesprApiRepository.getTrendingTokens(effectiveCurrency, period);
 
     // Apply limit to results
     const limitedData = response.data.slice(0, effectiveLimit);

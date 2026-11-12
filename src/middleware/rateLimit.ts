@@ -26,7 +26,8 @@ export function createDualWindowStore(
 
     constructor(_options: unknown) {
       const interval = setInterval(() => this.cleanup(), CLEANUP_INTERVAL_MS);
-      (interval as NodeJS.Timeout).unref?.();
+      // Don't keep the process alive just for the cleanup timer
+      interval.unref();
     }
 
     incr(key: string, cb: (err: Error | null, result?: { current: number; ttl: number }) => void): void {

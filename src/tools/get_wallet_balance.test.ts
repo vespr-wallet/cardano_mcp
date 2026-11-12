@@ -89,28 +89,6 @@ describe("get_wallet_balance tool", () => {
 
       expect(getDetailedWalletSpy).not.toHaveBeenCalled();
     });
-
-    it("returns error for unsupported currency", async () => {
-      const validAddress =
-        "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv";
-
-      const result = await registeredHandler({
-        address: validAddress,
-        currency: "INVALID",
-      });
-
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: "Error: Invalid currency. Currency must be one of the supported fiat currencies.",
-          },
-        ],
-        isError: true,
-      });
-
-      expect(getDetailedWalletSpy).not.toHaveBeenCalled();
-    });
   });
 
   describe("successful responses", () => {
@@ -145,32 +123,24 @@ describe("get_wallet_balance tool", () => {
       getDetailedWalletSpy.mockResolvedValue(mockWalletResponse);
       getAdaSpotPriceSpy.mockResolvedValue(mockSpotPrice);
 
-      const result = (await registeredHandler({
+      const result = await registeredHandler({
         address: validAddress,
         currency: FiatCurrency.USD,
-      })) as {
-        content: Array<{ type: string; text: string }>;
-        structuredContent: {
-          currency: string;
-          portfolio_value: string;
-          tokens: Array<{ name: string; ticker: string | null; amount: string; value: string | null }>;
-          handles: string[];
-        };
-      };
+      });
 
       // Check structured content
-      expect(result.structuredContent.currency).toBe(FiatCurrency.USD);
-      expect(result.structuredContent.handles).toEqual(["$testhandle"]);
-      expect(result.structuredContent.tokens).toHaveLength(2); // ADA + Test Token
+      expect(result.structuredContent?.currency).toBe(FiatCurrency.USD);
+      expect(result.structuredContent?.handles).toEqual(["$testhandle"]);
+      expect(result.structuredContent?.tokens).toHaveLength(2); // ADA + Test Token
 
       // Check ADA token
-      const adaToken = result.structuredContent.tokens.find((t) => t.ticker === "ADA");
+      const adaToken = result.structuredContent?.tokens.find((t) => t.ticker === "ADA");
       expect(adaToken).toBeDefined();
       expect(adaToken?.name).toBe("Cardano");
       expect(adaToken?.amount).toBe("1000.000000");
 
       // Check test token
-      const testToken = result.structuredContent.tokens.find((t) => t.ticker === "TEST");
+      const testToken = result.structuredContent?.tokens.find((t) => t.ticker === "TEST");
       expect(testToken).toBeDefined();
       expect(testToken?.name).toBe("Test Token");
     });
@@ -180,14 +150,12 @@ describe("get_wallet_balance tool", () => {
       getAdaSpotPriceSpy.mockResolvedValue(mockSpotPrice);
 
       // Note: The Zod schema applies default, so we pass the expected default value
-      const result = (await registeredHandler({
+      const result = await registeredHandler({
         address: validAddress,
         currency: FiatCurrency.USD,
-      })) as {
-        structuredContent: { currency: string };
-      };
+      });
 
-      expect(result.structuredContent.currency).toBe(FiatCurrency.USD);
+      expect(result.structuredContent?.currency).toBe(FiatCurrency.USD);
       // Verify the API was called correctly
       expect(getAdaSpotPriceSpy).toHaveBeenCalledWith(FiatCurrency.USD);
     });
@@ -196,29 +164,25 @@ describe("get_wallet_balance tool", () => {
       getDetailedWalletSpy.mockResolvedValue(mockWalletResponse);
       getAdaSpotPriceSpy.mockResolvedValue(mockSpotPrice);
 
-      const result = (await registeredHandler({
+      const result = await registeredHandler({
         address: validAddress,
         currency: FiatCurrency.USD,
-      })) as {
-        structuredContent: { portfolio_value: string };
-      };
+      });
 
       // 1000 ADA * 0.35 USD = 350 USD for ADA
       // 1000 tokens * 0.5 ADA * 0.35 USD = 175 USD for tokens
       // Total = 525 USD
-      expect(parseFloat(result.structuredContent.portfolio_value)).toBeCloseTo(525, 0);
+      expect(Number(result.structuredContent?.portfolio_value)).toBeCloseTo(525, 0);
     });
 
     it("includes text summary with formatted values", async () => {
       getDetailedWalletSpy.mockResolvedValue(mockWalletResponse);
       getAdaSpotPriceSpy.mockResolvedValue(mockSpotPrice);
 
-      const result = (await registeredHandler({
+      const result = await registeredHandler({
         address: validAddress,
         currency: FiatCurrency.USD,
-      })) as {
-        content: Array<{ type: string; text: string }>;
-      };
+      });
 
       expect(result.content[0].text).toContain("Portfolio Value");
       expect(result.content[0].text).toContain("ADA Balance");
@@ -233,15 +197,12 @@ describe("get_wallet_balance tool", () => {
       getDetailedWalletSpy.mockResolvedValue(walletWithNoHandles);
       getAdaSpotPriceSpy.mockResolvedValue(mockSpotPrice);
 
-      const result = (await registeredHandler({
+      const result = await registeredHandler({
         address: validAddress,
         currency: FiatCurrency.USD,
-      })) as {
-        content: Array<{ type: string; text: string }>;
-        structuredContent: { handles: string[] };
-      };
+      });
 
-      expect(result.structuredContent.handles).toEqual([]);
+      expect(result.structuredContent?.handles).toEqual([]);
       expect(result.content[0].text).toContain("Handles: none");
     });
 
@@ -263,16 +224,12 @@ describe("get_wallet_balance tool", () => {
       getDetailedWalletSpy.mockResolvedValue(walletWithTokenNoPrice);
       getAdaSpotPriceSpy.mockResolvedValue(mockSpotPrice);
 
-      const result = (await registeredHandler({
+      const result = await registeredHandler({
         address: validAddress,
         currency: FiatCurrency.USD,
-      })) as {
-        structuredContent: {
-          tokens: Array<{ name: string; value: string | null }>;
-        };
-      };
+      });
 
-      const nftToken = result.structuredContent.tokens.find((t) => t.name === "NFT Token");
+      const nftToken = result.structuredContent?.tokens.find((t) => t.name === "NFT Token");
       expect(nftToken).toBeDefined();
       expect(nftToken?.value).toBeNull();
     });

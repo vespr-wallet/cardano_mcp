@@ -29,7 +29,7 @@ describe("HttpToolRegistry", () => {
         name: "test_tool",
         title: "Test Tool",
         description: "A test tool",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("test"),
       };
 
@@ -44,14 +44,14 @@ describe("HttpToolRegistry", () => {
         name: "test_tool",
         title: "Test Tool 1",
         description: "First tool",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("first"),
       };
       const tool2 = {
         name: "test_tool",
         title: "Test Tool 2",
         description: "Second tool",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("second"),
       };
 
@@ -95,14 +95,14 @@ describe("HttpToolRegistry", () => {
         name: "tool_a",
         title: "Tool A",
         description: "A",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("a"),
       };
       const tool2 = {
         name: "tool_b",
         title: "Tool B",
         description: "B",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("b"),
       };
 
@@ -142,7 +142,7 @@ describe("HttpToolRegistry", () => {
         name: "no_input",
         title: "No Input",
         description: "Tool with no input",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("done"),
       };
 
@@ -193,7 +193,7 @@ describe("registerHttpRoutes", () => {
         name: "test_list",
         title: "Test List",
         description: "Test description",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("test"),
       });
 
@@ -316,7 +316,7 @@ describe("registerHttpRoutes", () => {
         name: "error_tool",
         title: "Error Tool",
         description: "Throws an error",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => {
           throw new Error("Something went wrong");
         },
@@ -342,7 +342,7 @@ describe("registerHttpRoutes", () => {
         name: "text_only_tool",
         title: "Text Only",
         description: "Returns only text content",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => textResult("Just text"),
       });
 
@@ -363,7 +363,7 @@ describe("registerHttpRoutes", () => {
         name: "no_args_tool",
         title: "No Args",
         description: "Needs no arguments",
-        inputSchema: {},
+        inputSchema: z.object({}),
         handler: async () => ({
           content: [{ type: "text", text: "Done" }],
           structuredContent: { success: true },
@@ -424,7 +424,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       name: "known_tool",
       title: "Known",
       description: "Known tool",
-      inputSchema: {},
+      inputSchema: z.object({}),
       handler: async () => textResult("ok"),
     });
 
@@ -445,7 +445,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       name: "failing_tool",
       title: "Failing",
       description: "Returns an error result",
-      inputSchema: {},
+      inputSchema: z.object({}),
       handler: async () => ({
         content: [
           { type: "text", text: "Error: upstream down" },
@@ -468,7 +468,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       name: "lookup_tool",
       title: "Lookup",
       description: "Throws a not-found error",
-      inputSchema: {},
+      inputSchema: z.object({}),
       handler: async () => {
         throw new Error("Asset not found in index");
       },
@@ -487,7 +487,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       name: "weird_tool",
       title: "Weird",
       description: "Throws a string",
-      inputSchema: {},
+      inputSchema: z.object({}),
       handler: () => Promise.reject("plain string failure"),
     });
 
@@ -505,7 +505,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       name: "key_tool",
       title: "Key",
       description: "Records the API key it runs with",
-      inputSchema: {},
+      inputSchema: z.object({}),
       handler: async () => {
         seenKeys.push(getCurrentApiKey());
         return textResult("ok");

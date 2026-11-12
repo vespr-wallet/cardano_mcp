@@ -36,7 +36,13 @@ function formatNumber(value: number | null | undefined, decimals = 2): string {
 /**
  * Handler for get_token_info tool
  */
-export async function getTokenInfoHandler({ unit, currency }: { unit: string; currency?: string }): Promise<{
+export async function getTokenInfoHandler({
+  unit,
+  currency = FiatCurrency.USD,
+}: {
+  unit: string;
+  currency?: SupportedCurrency;
+}): Promise<{
   content: Array<{ type: "text"; text: string }>;
   structuredContent?: z.infer<typeof tokenInfoOutputSchema>;
   isError?: boolean;
@@ -49,17 +55,8 @@ export async function getTokenInfoHandler({ unit, currency }: { unit: string; cu
     };
   }
 
-  if (currency && !SUPPORTED_CURRENCIES.includes(currency as SupportedCurrency)) {
-    return {
-      content: [{ type: "text" as const, text: "Error: Invalid currency. Must be one of the supported currencies." }],
-      isError: true,
-    };
-  }
-
-  const effectiveCurrency = (currency as SupportedCurrency) ?? FiatCurrency.USD;
-
   try {
-    const response = await VesprApiRepository.getTokenInfo(unit, effectiveCurrency);
+    const response = await VesprApiRepository.getTokenInfo(unit, currency);
     const data = response.data;
 
     // Transform response for output (convert undefined to null for schema compliance)

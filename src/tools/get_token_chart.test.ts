@@ -73,30 +73,16 @@ describe("get_token_chart tool", () => {
 
       getTokenChartSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          interval: string;
-          currency: string;
-          candles: Array<{
-            timestamp: number;
-            open: number;
-            high: number;
-            low: number;
-            close: number;
-            volume: number;
-          }>;
-        };
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(getTokenChartSpy).toHaveBeenCalledWith(validUnit, "24H", CryptoCurrency.ADA);
 
       // Check structured content
-      expect(result.structuredContent.interval).toBe("1h");
-      expect(result.structuredContent.currency).toBe(CryptoCurrency.ADA);
-      expect(result.structuredContent.candles).toHaveLength(3);
-      expect(result.structuredContent.candles[0].timestamp).toBe(1700000000);
-      expect(result.structuredContent.candles[0].open).toBe(0.001);
+      expect(result.structuredContent?.interval).toBe("1h");
+      expect(result.structuredContent?.currency).toBe(CryptoCurrency.ADA);
+      expect(result.structuredContent?.candles).toHaveLength(3);
+      expect(result.structuredContent?.candles[0].timestamp).toBe(1700000000);
+      expect(result.structuredContent?.candles[0].open).toBe(0.001);
 
       // Check text content contains expected summary
       expect(result.content[0].text).toContain("Token Chart (24H) - 3 candles");
@@ -115,15 +101,10 @@ describe("get_token_chart tool", () => {
 
       getTokenChartSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          candles: unknown[];
-        };
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       // Check structured content has empty candles array
-      expect(result.structuredContent.candles).toHaveLength(0);
+      expect(result.structuredContent?.candles).toHaveLength(0);
 
       // Check text shows appropriate message
       expect(result.content[0].text).toContain("Token Chart (24H) - 0 candles");
@@ -139,9 +120,7 @@ describe("get_token_chart tool", () => {
 
       getTokenChartSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit, period: "1W" })) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({ unit: validUnit, period: "1W" });
 
       expect(getTokenChartSpy).toHaveBeenCalledWith(validUnit, "1W", CryptoCurrency.ADA);
       expect(result.content[0].text).toContain("Token Chart (1W)");
@@ -156,9 +135,7 @@ describe("get_token_chart tool", () => {
 
       getTokenChartSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit, currency: "USD" })) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({ unit: validUnit, currency: FiatCurrency.USD });
 
       expect(getTokenChartSpy).toHaveBeenCalledWith(validUnit, "24H", FiatCurrency.USD);
       expect(result.content[0].text).toContain("Currency: USD");
@@ -194,9 +171,7 @@ describe("get_token_chart tool", () => {
 
       getTokenChartSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       // Max high is 0.01 from second candle
       // Min low is 0.0008 from first candle
@@ -213,10 +188,7 @@ describe("get_token_chart tool", () => {
     it("handles API errors gracefully", async () => {
       getTokenChartSpy.mockRejectedValue(new VesprApiError("Token not found", 404));
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Token not found");
@@ -225,10 +197,7 @@ describe("get_token_chart tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getTokenChartSpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -237,10 +206,7 @@ describe("get_token_chart tool", () => {
     it("handles non-Error objects gracefully", async () => {
       getTokenChartSpy.mockRejectedValue("string error");
 
-      const result = (await registeredHandler({ unit: validUnit })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ unit: validUnit });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");

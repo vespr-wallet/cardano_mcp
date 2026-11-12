@@ -5,10 +5,21 @@ import { lovelaceToAda } from "../utils/cardano.js";
 import { isValidCardanoAddress } from "../utils/validation.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 
+// Output schemas
+const transactionOutputSchema = z.object({
+  txHash: z.string(),
+  timestamp: z.string(),
+  blockHeight: z.number(),
+  direction: z.enum(["Received", "Sent", "Self Transfer", "Multisig"]),
+  adaAmount: z.string(),
+  fee: z.string(),
+  assetCount: z.number(),
+});
+
 // Direction mapping from API values to human-readable labels
 type ApiDirection = "self" | "externalOut" | "externalIn" | "multisig";
 
-const directionLabels: Record<ApiDirection, string> = {
+const directionLabels: Record<ApiDirection, z.infer<typeof transactionOutputSchema>["direction"]> = {
   externalIn: "Received",
   externalOut: "Sent",
   self: "Self Transfer",
@@ -28,17 +39,6 @@ const directionAmountPrefix: Record<ApiDirection, string> = {
   self: "",
   multisig: "",
 };
-
-// Output schemas
-const transactionOutputSchema = z.object({
-  txHash: z.string(),
-  timestamp: z.string(),
-  blockHeight: z.number(),
-  direction: z.enum(["Received", "Sent", "Self Transfer", "Multisig"]),
-  adaAmount: z.string(),
-  fee: z.string(),
-  assetCount: z.number(),
-});
 
 const historyOutputSchema = z.object({
   sinceBlock: z.number(),
@@ -74,12 +74,12 @@ export async function getTransactionHistoryHandler({
 
     // Transform transactions for output
     const transactions = response.transactions.map((tx) => {
-      const apiDirection = tx.direction as ApiDirection;
+      const apiDirection = tx.direction;
       return {
         txHash: tx.txHash,
         timestamp: tx.timestamp,
         blockHeight: tx.blockHeight,
-        direction: directionLabels[apiDirection] as "Received" | "Sent" | "Self Transfer" | "Multisig",
+        direction: directionLabels[apiDirection],
         adaAmount: lovelaceToAda(tx.lovelace),
         fee: lovelaceToAda(tx.txFee),
         assetCount: tx.assets.length,

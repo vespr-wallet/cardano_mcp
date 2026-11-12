@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { registerTools } from "../tools/index.js";
 import { apiKeyContext } from "../utils/apiKeyContext.js";
+import { getHeader } from "../utils/headers.js";
 import { logger } from "../utils/logger.js";
 import { VERSION } from "../version.js";
 
@@ -114,8 +115,8 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
   });
 
   server.post("/", async (request: FastifyRequest, reply: FastifyReply) => {
-    const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
-    const apiKey = (request.headers["x-api-key"] as string) || undefined;
+    const sessionId = getHeader(request.headers, "mcp-session-id");
+    const apiKey = getHeader(request.headers, "x-api-key");
 
     try {
       if (sessionId && !sessions.has(sessionId)) {
@@ -143,7 +144,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
   });
 
   server.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
-    const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
+    const sessionId = getHeader(request.headers, "mcp-session-id");
 
     const session = sessionId ? sessions.get(sessionId) : undefined;
     if (!sessionId || !session) {
@@ -170,7 +171,7 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
   });
 
   server.delete("/", async (request: FastifyRequest, reply: FastifyReply) => {
-    const sessionId = (request.headers["mcp-session-id"] as string) || undefined;
+    const sessionId = getHeader(request.headers, "mcp-session-id");
 
     const session = sessionId ? sessions.get(sessionId) : undefined;
     if (!sessionId || !session) {

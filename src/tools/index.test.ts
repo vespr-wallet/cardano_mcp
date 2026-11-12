@@ -222,9 +222,6 @@ describe("registerHttpTools (HTTP transport)", () => {
     if (!tool) {
       throw new Error(`Tool ${name} is not registered`);
     }
-    if (!(tool.inputSchema instanceof z.ZodObject)) {
-      throw new Error(`Tool ${name} has no object input schema`);
-    }
     return tool.inputSchema;
   }
 
@@ -287,6 +284,8 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_token_chart", args: { unit: "u", period: "2H" } },
     { tool: "get_transaction_history", args: { address: VALID_ADDRESS, to_block: -1 } },
     { tool: "get_wallet_balance", args: {} },
+    { tool: "get_wallet_balance", args: { address: VALID_ADDRESS, currency: "INVALID" } },
+    { tool: "get_token_info", args: { unit: "u", currency: "DOGE" } },
     { tool: "resolve_ada_handle", args: {} },
     { tool: "get_asset_metadata", args: { unit: 42 } },
     { tool: "get_asset_summary", args: {} },
@@ -321,6 +320,21 @@ describe("registerHttpTools (HTTP transport)", () => {
       expect(response.statusCode).toBe(200);
       expect(spotSpy).toHaveBeenCalledWith(FiatCurrency.USD);
       expect(response.json()).toEqual({ result: expect.objectContaining({ currency: FiatCurrency.USD }) });
+    });
+
+    it("get_asset_summary passes the units array to the handler", async () => {
+      const spy = jest
+        .spyOn(VesprApiRepository, "getAssetSummary")
+        .mockResolvedValue({ tokens: [], nfts: [], other_nfts: [] });
+
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/get_asset_summary",
+        payload: { arguments: { units: ["unit1", "unit2"] } },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(spy).toHaveBeenCalledWith(["unit1", "unit2"]);
     });
 
     it("get_token_chart applies the default period when an empty string is sent", async () => {

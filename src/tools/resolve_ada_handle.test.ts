@@ -75,17 +75,14 @@ describe("resolve_ada_handle tool", () => {
 
       resolveAdaHandleSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ handle: "$myhandle" })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { handle: string; owner: string | null; found: boolean };
-      };
+      const result = await registeredHandler({ handle: "$myhandle" });
 
       expect(resolveAdaHandleSpy).toHaveBeenCalledWith("$myhandle");
 
       // Check structured content
-      expect(result.structuredContent.handle).toBe("myhandle");
-      expect(result.structuredContent.owner).toBe(mockResponse.owner);
-      expect(result.structuredContent.found).toBe(true);
+      expect(result.structuredContent?.handle).toBe("myhandle");
+      expect(result.structuredContent?.owner).toBe(mockResponse.owner);
+      expect(result.structuredContent?.found).toBe(true);
 
       // Check text content
       expect(result.content[0].text).toContain("Handle: $myhandle");
@@ -100,17 +97,14 @@ describe("resolve_ada_handle tool", () => {
 
       resolveAdaHandleSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ handle: "myhandle" })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { handle: string; owner: string | null; found: boolean };
-      };
+      const result = await registeredHandler({ handle: "myhandle" });
 
       expect(resolveAdaHandleSpy).toHaveBeenCalledWith("myhandle");
 
       // Check structured content
-      expect(result.structuredContent.handle).toBe("myhandle");
-      expect(result.structuredContent.owner).toBe(mockResponse.owner);
-      expect(result.structuredContent.found).toBe(true);
+      expect(result.structuredContent?.handle).toBe("myhandle");
+      expect(result.structuredContent?.owner).toBe(mockResponse.owner);
+      expect(result.structuredContent?.found).toBe(true);
 
       // Check text content
       expect(result.content[0].text).toContain("Handle: $myhandle");
@@ -124,17 +118,14 @@ describe("resolve_ada_handle tool", () => {
 
       resolveAdaHandleSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ handle: "nonexistent" })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { handle: string; owner: string | null; found: boolean };
-      };
+      const result = await registeredHandler({ handle: "nonexistent" });
 
       expect(resolveAdaHandleSpy).toHaveBeenCalledWith("nonexistent");
 
       // Check structured content
-      expect(result.structuredContent.handle).toBe("nonexistent");
-      expect(result.structuredContent.owner).toBeNull();
-      expect(result.structuredContent.found).toBe(false);
+      expect(result.structuredContent?.handle).toBe("nonexistent");
+      expect(result.structuredContent?.owner).toBeNull();
+      expect(result.structuredContent?.found).toBe(false);
 
       // Check text content
       expect(result.content[0].text).toContain("Handle: $nonexistent");
@@ -149,13 +140,10 @@ describe("resolve_ada_handle tool", () => {
 
       resolveAdaHandleSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ handle: "  $myhandle  " })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { handle: string; owner: string | null; found: boolean };
-      };
+      const result = await registeredHandler({ handle: "  $myhandle  " });
 
       expect(resolveAdaHandleSpy).toHaveBeenCalledWith("$myhandle");
-      expect(result.structuredContent.handle).toBe("myhandle");
+      expect(result.structuredContent?.handle).toBe("myhandle");
       expect(result.content[0].text).toContain("Handle: $myhandle");
     });
 
@@ -167,13 +155,10 @@ describe("resolve_ada_handle tool", () => {
 
       resolveAdaHandleSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ handle: "  $MyHandle  " })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { handle: string; owner: string | null; found: boolean };
-      };
+      const result = await registeredHandler({ handle: "  $MyHandle  " });
 
       expect(resolveAdaHandleSpy).toHaveBeenCalledWith("$MyHandle");
-      expect(result.structuredContent.handle).toBe("myhandle");
+      expect(result.structuredContent?.handle).toBe("myhandle");
       expect(result.content[0].text).toContain("Handle: $myhandle");
     });
   });
@@ -182,10 +167,7 @@ describe("resolve_ada_handle tool", () => {
     it("handles API errors gracefully", async () => {
       resolveAdaHandleSpy.mockRejectedValue(new VesprApiError("Internal server error", 500));
 
-      const result = (await registeredHandler({ handle: "myhandle" })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ handle: "myhandle" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Internal server error");
@@ -194,10 +176,7 @@ describe("resolve_ada_handle tool", () => {
     it("handles unexpected errors gracefully", async () => {
       resolveAdaHandleSpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ handle: "myhandle" })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ handle: "myhandle" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -206,10 +185,7 @@ describe("resolve_ada_handle tool", () => {
     it("handles non-Error thrown values", async () => {
       resolveAdaHandleSpy.mockRejectedValue("String error");
 
-      const result = (await registeredHandler({ handle: "myhandle" })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ handle: "myhandle" });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");

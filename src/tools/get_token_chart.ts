@@ -49,8 +49,8 @@ export async function getTokenChartHandler({
   currency,
 }: {
   unit: string;
-  period?: string;
-  currency?: string;
+  period?: ChartPeriod;
+  currency?: SupportedCurrency;
 }): Promise<{
   content: Array<{ type: "text"; text: string }>;
   structuredContent?: z.infer<typeof tokenChartOutputSchema>;
@@ -66,10 +66,10 @@ export async function getTokenChartHandler({
 
   // Use default values if not specified
   const effectivePeriod = period ?? "24H";
-  const effectiveCurrency = (currency as SupportedCurrency) ?? CryptoCurrency.ADA;
+  const effectiveCurrency = currency ?? CryptoCurrency.ADA;
 
   try {
-    const response = await VesprApiRepository.getTokenChart(unit, effectivePeriod as ChartPeriod, effectiveCurrency);
+    const response = await VesprApiRepository.getTokenChart(unit, effectivePeriod, effectiveCurrency);
 
     // Transform response for output
     const output = {

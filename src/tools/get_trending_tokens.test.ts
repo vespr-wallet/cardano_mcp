@@ -59,21 +59,15 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          currency: string;
-          tokens: { name: string; ticker: string | null }[];
-        };
-      };
+      const result = await registeredHandler({});
 
       expect(getTrendingTokensSpy).toHaveBeenCalledWith(FiatCurrency.USD, undefined);
 
       // Check structured content
-      expect(result.structuredContent.currency).toBe("USD");
-      expect(result.structuredContent.tokens).toHaveLength(2);
-      expect(result.structuredContent.tokens[0].name).toBe("Token A");
-      expect(result.structuredContent.tokens[1].name).toBe("Token B");
+      expect(result.structuredContent?.currency).toBe("USD");
+      expect(result.structuredContent?.tokens).toHaveLength(2);
+      expect(result.structuredContent?.tokens[0].name).toBe("Token A");
+      expect(result.structuredContent?.tokens[1].name).toBe("Token B");
 
       // Check text content
       expect(result.content[0].text).toContain("Trending Tokens");
@@ -90,13 +84,10 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ period: "1H" })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { period: string | null };
-      };
+      const result = await registeredHandler({ period: "1H" });
 
       expect(getTrendingTokensSpy).toHaveBeenCalledWith(FiatCurrency.USD, "1H");
-      expect(result.structuredContent.period).toBe("1H");
+      expect(result.structuredContent?.period).toBe("1H");
       expect(result.content[0].text).toContain("(1H)");
     });
 
@@ -139,13 +130,11 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ limit: 3 })) as {
-        structuredContent: { tokens: { name: string }[] };
-      };
+      const result = await registeredHandler({ limit: 3 });
 
-      expect(result.structuredContent.tokens).toHaveLength(3);
-      expect(result.structuredContent.tokens[0].name).toBe("Token 1");
-      expect(result.structuredContent.tokens[2].name).toBe("Token 3");
+      expect(result.structuredContent?.tokens).toHaveLength(3);
+      expect(result.structuredContent?.tokens[0].name).toBe("Token 1");
+      expect(result.structuredContent?.tokens[2].name).toBe("Token 3");
     });
 
     it("defaults to 10 items if not specified", async () => {
@@ -155,11 +144,9 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        structuredContent: { tokens: { name: string }[] };
-      };
+      const result = await registeredHandler({});
 
-      expect(result.structuredContent.tokens).toHaveLength(10);
+      expect(result.structuredContent?.tokens).toHaveLength(10);
     });
   });
 
@@ -171,13 +158,10 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ currency: "EUR" })) as {
-        content: { type: string; text: string }[];
-        structuredContent: { currency: string };
-      };
+      const result = await registeredHandler({ currency: FiatCurrency.EUR });
 
       expect(getTrendingTokensSpy).toHaveBeenCalledWith(FiatCurrency.EUR, undefined);
-      expect(result.structuredContent.currency).toBe("EUR");
+      expect(result.structuredContent?.currency).toBe("EUR");
       expect(result.content[0].text).toContain("EUR");
     });
   });
@@ -190,12 +174,9 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-        structuredContent: { tokens: unknown[] };
-      };
+      const result = await registeredHandler({});
 
-      expect(result.structuredContent.tokens).toHaveLength(0);
+      expect(result.structuredContent?.tokens).toHaveLength(0);
       expect(result.content[0].text).toContain("No trending tokens found");
     });
   });
@@ -208,9 +189,7 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({});
 
       expect(result.content[0].text).toContain("[Verified]");
     });
@@ -222,9 +201,7 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({});
 
       expect(result.content[0].text).not.toContain("[Verified]");
     });
@@ -236,9 +213,7 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({});
 
       expect(result.content[0].text).toContain("+10.50%");
     });
@@ -250,9 +225,7 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({});
 
       expect(result.content[0].text).toContain("-5.25%");
     });
@@ -264,9 +237,7 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({});
 
       expect(result.content[0].text).toContain("Change: N/A");
     });
@@ -278,12 +249,9 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-        structuredContent: { tokens: { ticker: string | null }[] };
-      };
+      const result = await registeredHandler({});
 
-      expect(result.structuredContent.tokens[0].ticker).toBeNull();
+      expect(result.structuredContent?.tokens[0].ticker).toBeNull();
       expect(result.content[0].text).toContain("1. No Ticker Token");
       expect(result.content[0].text).not.toMatch(/1\. No Ticker Token \(/);
     });
@@ -295,9 +263,7 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-      };
+      const result = await registeredHandler({});
 
       expect(result.content[0].text).toContain("Volume: 1,234,567");
     });
@@ -307,10 +273,7 @@ describe("get_trending_tokens tool", () => {
     it("handles API errors gracefully", async () => {
       getTrendingTokensSpy.mockRejectedValue(new VesprApiError("Service unavailable", 503));
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({});
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Service unavailable");
@@ -319,10 +282,7 @@ describe("get_trending_tokens tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getTrendingTokensSpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({});
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -331,10 +291,7 @@ describe("get_trending_tokens tool", () => {
     it("handles non-Error objects gracefully", async () => {
       getTrendingTokensSpy.mockRejectedValue("string error");
 
-      const result = (await registeredHandler({})) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({});
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");
@@ -349,24 +306,17 @@ describe("get_trending_tokens tool", () => {
 
       getTrendingTokensSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({
-        currency: "GBP",
+      const result = await registeredHandler({
+        currency: FiatCurrency.GBP,
         period: "4H",
         limit: 1,
-      })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          currency: string;
-          period: string | null;
-          tokens: { name: string }[];
-        };
-      };
+      });
 
       expect(getTrendingTokensSpy).toHaveBeenCalledWith(FiatCurrency.GBP, "4H");
-      expect(result.structuredContent.currency).toBe("GBP");
-      expect(result.structuredContent.period).toBe("4H");
-      expect(result.structuredContent.tokens).toHaveLength(1);
-      expect(result.structuredContent.tokens[0].name).toBe("Top Token");
+      expect(result.structuredContent?.currency).toBe("GBP");
+      expect(result.structuredContent?.period).toBe("4H");
+      expect(result.structuredContent?.tokens).toHaveLength(1);
+      expect(result.structuredContent?.tokens[0].name).toBe("Top Token");
     });
   });
 });

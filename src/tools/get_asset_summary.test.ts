@@ -77,10 +77,7 @@ describe("get_asset_summary tool", () => {
 
       getAssetSummarySpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ units })) as {
-        content: { type: string; text: string }[];
-        isError?: boolean;
-      };
+      const result = await registeredHandler({ units });
 
       expect(result.isError).toBeUndefined();
       expect(getAssetSummarySpy).toHaveBeenCalledWith(units);
@@ -113,36 +110,22 @@ describe("get_asset_summary tool", () => {
 
       getAssetSummarySpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ units: [testUnits[0]] })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          queried_count: number;
-          tokens: Array<{
-            policy: string;
-            hex_asset_name: string;
-            name: string;
-            ticker?: string;
-            decimals: number;
-            verified: boolean;
-            image: { type: string; image?: string };
-          }>;
-          nfts: Array<{ policy: string; hex_asset_name: string; name: string; image: { type: string } }>;
-          other_nfts: Array<{ policy: string; hex_asset_name: string; name: string; image: { type: string } }>;
-        };
-      };
+      const result = await registeredHandler({ units: [testUnits[0]] });
 
       expect(getAssetSummarySpy).toHaveBeenCalledWith([testUnits[0]]);
 
       // Check structured content
-      expect(result.structuredContent.queried_count).toBe(1);
-      expect(result.structuredContent.tokens).toHaveLength(1);
-      expect(result.structuredContent.tokens[0].name).toBe("HOSKY");
-      expect(result.structuredContent.tokens[0].ticker).toBe("HOSKY");
-      expect(result.structuredContent.tokens[0].verified).toBe(true);
-      expect(result.structuredContent.tokens[0].image.type).toBe("URL_IMAGE");
-      expect(result.structuredContent.tokens[0].image.image).toBe("https://example.com/hosky.png");
-      expect(result.structuredContent.nfts).toHaveLength(0);
-      expect(result.structuredContent.other_nfts).toHaveLength(0);
+      expect(result.structuredContent?.queried_count).toBe(1);
+      expect(result.structuredContent?.tokens).toHaveLength(1);
+      expect(result.structuredContent?.tokens[0].name).toBe("HOSKY");
+      expect(result.structuredContent?.tokens[0].ticker).toBe("HOSKY");
+      expect(result.structuredContent?.tokens[0].verified).toBe(true);
+      expect(result.structuredContent?.tokens[0].image).toEqual({
+        type: "URL_IMAGE",
+        image: "https://example.com/hosky.png",
+      });
+      expect(result.structuredContent?.nfts).toHaveLength(0);
+      expect(result.structuredContent?.other_nfts).toHaveLength(0);
 
       // Check text content
       expect(result.content[0].text).toContain("Asset Summary (1 assets queried)");
@@ -191,31 +174,26 @@ describe("get_asset_summary tool", () => {
 
       getAssetSummarySpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ units: testUnits })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          queried_count: number;
-          tokens: Array<{ name: string; verified: boolean; image: { type: string; image?: string } }>;
-          nfts: Array<{ name: string; image: { type: string } }>;
-          other_nfts: Array<{ name: string; image: { type: string; image?: string; image_encoding?: string } }>;
-        };
-      };
+      const result = await registeredHandler({ units: testUnits });
 
       // Check structured content
-      expect(result.structuredContent.queried_count).toBe(2);
-      expect(result.structuredContent.tokens).toHaveLength(2);
-      expect(result.structuredContent.nfts).toHaveLength(1);
-      expect(result.structuredContent.other_nfts).toHaveLength(1);
+      expect(result.structuredContent?.queried_count).toBe(2);
+      expect(result.structuredContent?.tokens).toHaveLength(2);
+      expect(result.structuredContent?.nfts).toHaveLength(1);
+      expect(result.structuredContent?.other_nfts).toHaveLength(1);
 
       // Verify all image types are included
-      expect(result.structuredContent.tokens[0].image.type).toBe("URL_IMAGE");
-      expect(result.structuredContent.tokens[0].image.image).toBe("https://example.com/token1.png");
-      expect(result.structuredContent.tokens[1].image.type).toBe("CID_IMAGE");
-      expect(result.structuredContent.tokens[1].image.image).toBe("QmXyz123abc");
-      expect(result.structuredContent.nfts[0].image.type).toBe("NO_IMAGE");
-      expect(result.structuredContent.other_nfts[0].image.type).toBe("BASE64_IMAGE");
-      expect(result.structuredContent.other_nfts[0].image.image).toBe("base64data");
-      expect(result.structuredContent.other_nfts[0].image.image_encoding).toBe("image/png");
+      expect(result.structuredContent?.tokens[0].image).toEqual({
+        type: "URL_IMAGE",
+        image: "https://example.com/token1.png",
+      });
+      expect(result.structuredContent?.tokens[1].image).toEqual({ type: "CID_IMAGE", image: "QmXyz123abc" });
+      expect(result.structuredContent?.nfts[0].image).toEqual({ type: "NO_IMAGE" });
+      expect(result.structuredContent?.other_nfts[0].image).toEqual({
+        type: "BASE64_IMAGE",
+        image: "base64data",
+        image_encoding: "image/png",
+      });
 
       // Check text content includes all categories with image indicators
       const text = result.content[0].text;
@@ -238,21 +216,13 @@ describe("get_asset_summary tool", () => {
 
       getAssetSummarySpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ units: [testUnits[0]] })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          queried_count: number;
-          tokens: Array<unknown>;
-          nfts: Array<unknown>;
-          other_nfts: Array<unknown>;
-        };
-      };
+      const result = await registeredHandler({ units: [testUnits[0]] });
 
       // Check structured content
-      expect(result.structuredContent.queried_count).toBe(1);
-      expect(result.structuredContent.tokens).toHaveLength(0);
-      expect(result.structuredContent.nfts).toHaveLength(0);
-      expect(result.structuredContent.other_nfts).toHaveLength(0);
+      expect(result.structuredContent?.queried_count).toBe(1);
+      expect(result.structuredContent?.tokens).toHaveLength(0);
+      expect(result.structuredContent?.nfts).toHaveLength(0);
+      expect(result.structuredContent?.other_nfts).toHaveLength(0);
 
       // Check text content shows empty categories
       const text = result.content[0].text;
@@ -295,10 +265,7 @@ describe("get_asset_summary tool", () => {
     it("handles API errors gracefully", async () => {
       getAssetSummarySpy.mockRejectedValue(new VesprApiError("Internal server error", 500));
 
-      const result = (await registeredHandler({ units: ["someunit"] })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ units: ["someunit"] });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Internal server error");
@@ -307,10 +274,7 @@ describe("get_asset_summary tool", () => {
     it("handles 400 errors gracefully", async () => {
       getAssetSummarySpy.mockRejectedValue(new VesprApiError("Bad request", 400));
 
-      const result = (await registeredHandler({ units: ["badunit"] })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ units: ["badunit"] });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Bad request");
@@ -319,10 +283,7 @@ describe("get_asset_summary tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getAssetSummarySpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ units: ["someunit"] })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ units: ["someunit"] });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -331,10 +292,7 @@ describe("get_asset_summary tool", () => {
     it("handles non-Error thrown values", async () => {
       getAssetSummarySpy.mockRejectedValue("String error");
 
-      const result = (await registeredHandler({ units: ["someunit"] })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ units: ["someunit"] });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");

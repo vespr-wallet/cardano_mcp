@@ -133,28 +133,19 @@ describe("get_staking_info tool", () => {
 
       getStakingInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          status: string;
-          stakingAddress: string;
-          balanceAda: string;
-          suggestedPool: { id: string; name: string; ticker: string; apy: number };
-          averageApy: number;
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(getStakingInfoSpy).toHaveBeenCalledWith(validAddress);
 
       // Check structured content
-      expect(result.structuredContent.status).toBe("NEVER_REGISTERED");
-      expect(result.structuredContent.stakingAddress).toBe(
+      expect(result.structuredContent?.status).toBe("NEVER_REGISTERED");
+      expect(result.structuredContent?.stakingAddress).toBe(
         "stake1uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       );
-      expect(result.structuredContent.balanceAda).toBe("10000.000000");
-      expect(result.structuredContent.suggestedPool.name).toBe("Test Pool");
-      expect(result.structuredContent.suggestedPool.ticker).toBe("TEST");
-      expect(result.structuredContent.averageApy).toBe(0.04);
+      expect(result.structuredContent?.balanceAda).toBe("10000.000000");
+      expect(result.structuredContent?.suggestedPool?.name).toBe("Test Pool");
+      expect(result.structuredContent?.suggestedPool?.ticker).toBe("TEST");
+      expect(result.structuredContent?.averageApy).toBe(0.04);
 
       // Check text content
       expect(result.content[0].text).toContain("Staking Status: Never Registered");
@@ -178,15 +169,10 @@ describe("get_staking_info tool", () => {
 
       getStakingInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          suggestedPool: { name: string | null; ticker: string | null };
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
-      expect(result.structuredContent.suggestedPool.name).toBeNull();
-      expect(result.structuredContent.suggestedPool.ticker).toBeNull();
+      expect(result.structuredContent?.suggestedPool?.name).toBeNull();
+      expect(result.structuredContent?.suggestedPool?.ticker).toBeNull();
       // Should still display something in text
       expect(result.content[0].text).toContain("Unknown (pool1xxx");
     });
@@ -218,35 +204,21 @@ describe("get_staking_info tool", () => {
 
       getStakingInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          status: string;
-          stakingAddress: string;
-          balanceAda: string;
-          totalRewardsAda: string;
-          walletApy: number;
-          activePool: { name: string; ticker: string };
-          suggestedPool: { name: string; ticker: string } | null;
-          nextReward: { amountAda: string; timestamp: string } | null;
-          pastRewardsCount: number;
-          futureRewardsCount: number;
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(getStakingInfoSpy).toHaveBeenCalledWith(validAddress);
 
       // Check structured content
-      expect(result.structuredContent.status).toBe("REGISTERED");
-      expect(result.structuredContent.balanceAda).toBe("50000.000000");
-      expect(result.structuredContent.totalRewardsAda).toBe("2500.000000");
-      expect(result.structuredContent.walletApy).toBe(0.045);
-      expect(result.structuredContent.activePool.name).toBe("Active Pool");
-      expect(result.structuredContent.activePool.ticker).toBe("ACTV");
-      expect(result.structuredContent.suggestedPool?.name).toBe("Better Pool");
-      expect(result.structuredContent.nextReward?.amountAda).toBe("2.000000");
-      expect(result.structuredContent.pastRewardsCount).toBe(2);
-      expect(result.structuredContent.futureRewardsCount).toBe(1);
+      expect(result.structuredContent?.status).toBe("REGISTERED");
+      expect(result.structuredContent?.balanceAda).toBe("50000.000000");
+      expect(result.structuredContent?.totalRewardsAda).toBe("2500.000000");
+      expect(result.structuredContent?.walletApy).toBe(0.045);
+      expect(result.structuredContent?.activePool?.name).toBe("Active Pool");
+      expect(result.structuredContent?.activePool?.ticker).toBe("ACTV");
+      expect(result.structuredContent?.suggestedPool?.name).toBe("Better Pool");
+      expect(result.structuredContent?.nextReward?.amountAda).toBe("2.000000");
+      expect(result.structuredContent?.pastRewardsCount).toBe(2);
+      expect(result.structuredContent?.futureRewardsCount).toBe(1);
 
       // Check text content
       expect(result.content[0].text).toContain("Staking Status: Active");
@@ -281,16 +253,10 @@ describe("get_staking_info tool", () => {
 
       getStakingInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          nextReward: unknown;
-          suggestedPool: unknown;
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
-      expect(result.structuredContent.nextReward).toBeNull();
-      expect(result.structuredContent.suggestedPool).toBeNull();
+      expect(result.structuredContent?.nextReward).toBeNull();
+      expect(result.structuredContent?.suggestedPool).toBeNull();
       expect(result.content[0].text).not.toContain("Next Reward:");
     });
   });
@@ -315,27 +281,17 @@ describe("get_staking_info tool", () => {
 
       getStakingInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          status: string;
-          stakingAddress: string;
-          balanceAda: string;
-          totalRewardsAda: string;
-          suggestedPool: { name: string; ticker: string };
-          pastRewardsCount: number;
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(getStakingInfoSpy).toHaveBeenCalledWith(validAddress);
 
       // Check structured content
-      expect(result.structuredContent.status).toBe("DEREGISTERED");
-      expect(result.structuredContent.balanceAda).toBe("15000.000000");
-      expect(result.structuredContent.totalRewardsAda).toBe("500.000000");
-      expect(result.structuredContent.suggestedPool.name).toBe("Comeback Pool");
-      expect(result.structuredContent.suggestedPool.ticker).toBe("CMBC");
-      expect(result.structuredContent.pastRewardsCount).toBe(3);
+      expect(result.structuredContent?.status).toBe("DEREGISTERED");
+      expect(result.structuredContent?.balanceAda).toBe("15000.000000");
+      expect(result.structuredContent?.totalRewardsAda).toBe("500.000000");
+      expect(result.structuredContent?.suggestedPool?.name).toBe("Comeback Pool");
+      expect(result.structuredContent?.suggestedPool?.ticker).toBe("CMBC");
+      expect(result.structuredContent?.pastRewardsCount).toBe(3);
 
       // Check text content
       expect(result.content[0].text).toContain("Staking Status: Deregistered");
@@ -444,23 +400,17 @@ describe("get_staking_info tool", () => {
 
       getStakingInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          suggestedPool: { apy: number; saturation: number };
-          averageApy: number;
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       // Verify values are numbers and format correctly
-      expect(typeof result.structuredContent.suggestedPool.apy).toBe("number");
-      expect(typeof result.structuredContent.suggestedPool.saturation).toBe("number");
-      expect(typeof result.structuredContent.averageApy).toBe("number");
+      expect(typeof result.structuredContent?.suggestedPool?.apy).toBe("number");
+      expect(typeof result.structuredContent?.suggestedPool?.saturation).toBe("number");
+      expect(typeof result.structuredContent?.averageApy).toBe("number");
 
       // Verify values are correct
-      expect(result.structuredContent.suggestedPool.apy).toBe(0.0412);
-      expect(result.structuredContent.suggestedPool.saturation).toBe(0.75);
-      expect(result.structuredContent.averageApy).toBe(0.04);
+      expect(result.structuredContent?.suggestedPool?.apy).toBe(0.0412);
+      expect(result.structuredContent?.suggestedPool?.saturation).toBe(0.75);
+      expect(result.structuredContent?.averageApy).toBe(0.04);
 
       // Verify APY formatting in human-readable output
       expect(result.content[0].text).toContain("4.12% APY");
@@ -489,16 +439,11 @@ describe("get_staking_info tool", () => {
 
       getStakingInfoSpy.mockResolvedValue(mockResponse);
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        structuredContent: {
-          walletApy: number;
-        };
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       // Verify wallet_apy is a number
-      expect(typeof result.structuredContent.walletApy).toBe("number");
-      expect(result.structuredContent.walletApy).toBe(0.045);
+      expect(typeof result.structuredContent?.walletApy).toBe("number");
+      expect(result.structuredContent?.walletApy).toBe(0.045);
 
       // Verify formatting in human-readable output
       expect(result.content[0].text).toContain("APY: 4.50%");
@@ -637,10 +582,7 @@ describe("get_staking_info tool", () => {
     it("handles API errors gracefully", async () => {
       getStakingInfoSpy.mockRejectedValue(new VesprApiError("Internal server error", 500));
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Internal server error");
@@ -649,10 +591,7 @@ describe("get_staking_info tool", () => {
     it("handles unexpected errors gracefully", async () => {
       getStakingInfoSpy.mockRejectedValue(new Error("Network failure"));
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Network failure");
@@ -661,10 +600,7 @@ describe("get_staking_info tool", () => {
     it("handles non-Error thrown values", async () => {
       getStakingInfoSpy.mockRejectedValue("String error");
 
-      const result = (await registeredHandler({ address: validAddress })) as {
-        content: { type: string; text: string }[];
-        isError: boolean;
-      };
+      const result = await registeredHandler({ address: validAddress });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Error: Unknown error");
