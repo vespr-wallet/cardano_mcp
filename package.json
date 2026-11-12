@@ -8,7 +8,8 @@
     "cardano-mcp": "./dist/index.js"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22",
+    "npm": ">=12.2.2"
   },
   "files": [
     "dist"

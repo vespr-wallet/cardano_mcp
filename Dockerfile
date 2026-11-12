@@ -1,6 +1,6 @@
 FROM node:24.22.3-alpine AS builder
 
-RUN npm install -g npm@11.21.2
+RUN npm install -g npm@12.2.2
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN npx tsc --project tsconfig.docker.json
 
 FROM node:24.22.3-alpine
 
-RUN npm install -g npm@11.21.2
+RUN npm install -g npm@12.2.2
 
 WORKDIR /app
 
