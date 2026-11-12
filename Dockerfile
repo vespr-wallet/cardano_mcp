@@ -1,4 +1,4 @@
-FROM node:22.23.5-alpine AS builder
+FROM node:24.22.3-alpine AS builder
 
 RUN npm install -g npm@11.21.2
 
@@ -12,7 +12,7 @@ COPY tsconfig.json tsconfig.docker.json ./
 COPY src ./src
 RUN npx tsc --project tsconfig.docker.json
 
-FROM node:22.23.5-alpine
+FROM node:24.22.3-alpine
 
 RUN npm install -g npm@11.21.2
 
