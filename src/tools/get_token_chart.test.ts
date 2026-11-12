@@ -1,37 +1,35 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetTokenChart } from "./get_token_chart.js";
+import { registerGetTokenChart, getTokenChartHandler } from "./get_token_chart.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import type { TokenChartResponse, ChartPeriod } from "../types/api/schemas.js";
 import { CryptoCurrency, FiatCurrency } from "../types/currency.js";
 
 describe("get_token_chart tool", () => {
-  let registeredHandler: (args: { unit: string; period?: string; currency?: string }) => Promise<unknown>;
+  const registeredHandler = getTokenChartHandler;
   let getTokenChartSpy: jest.SpiedFunction<typeof VesprApiRepository.getTokenChart>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (
-          _name: string,
-          _config: unknown,
-          handler: (args: { unit: string; period?: string; currency?: string }) => Promise<unknown>,
-        ) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetTokenChart(mockServer);
-
     // Spy on the repository method
     getTokenChartSpy = jest.spyOn(VesprApiRepository, "getTokenChart");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("registers getTokenChartHandler as the get_token_chart tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetTokenChart(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_token_chart",
+      expect.objectContaining({ title: expect.any(String) }),
+      getTokenChartHandler,
+    );
   });
 
   describe("input validation", () => {

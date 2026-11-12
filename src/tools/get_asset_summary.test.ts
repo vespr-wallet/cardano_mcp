@@ -1,32 +1,34 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetAssetSummary } from "./get_asset_summary.js";
+import { registerGetAssetSummary, getAssetSummaryHandler } from "./get_asset_summary.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import type { AssetSummaryResponse } from "../types/api/schemas.js";
 
 describe("get_asset_summary tool", () => {
-  let registeredHandler: (args: { units: string[] }) => Promise<unknown>;
+  const registeredHandler = getAssetSummaryHandler;
   let getAssetSummarySpy: jest.SpiedFunction<typeof VesprApiRepository.getAssetSummary>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (_name: string, _config: unknown, handler: (args: { units: string[] }) => Promise<unknown>) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetAssetSummary(mockServer);
-
     // Spy on the repository method
     getAssetSummarySpy = jest.spyOn(VesprApiRepository, "getAssetSummary");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("registers getAssetSummaryHandler as the get_asset_summary tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetAssetSummary(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_asset_summary",
+      expect.objectContaining({ title: expect.any(String) }),
+      getAssetSummaryHandler,
+    );
   });
 
   describe("input validation", () => {

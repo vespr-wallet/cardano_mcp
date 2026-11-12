@@ -1,32 +1,17 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetWalletBalance } from "./get_wallet_balance.js";
+import { registerGetWalletBalance, getWalletBalanceHandler } from "./get_wallet_balance.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import type { WalletDetailedResponse, AdaSpotPriceResponse } from "../types/api/schemas.js";
 import { FiatCurrency } from "../types/currency.js";
 
 describe("get_wallet_balance tool", () => {
-  let registeredHandler: (args: { address: string; currency?: string }) => Promise<unknown>;
+  const registeredHandler = getWalletBalanceHandler;
   let getDetailedWalletSpy: jest.SpiedFunction<typeof VesprApiRepository.getDetailedWallet>;
   let getAdaSpotPriceSpy: jest.SpiedFunction<typeof VesprApiRepository.getAdaSpotPrice>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (
-          _name: string,
-          _config: unknown,
-          handler: (args: { address: string; currency?: string }) => Promise<unknown>,
-        ) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetWalletBalance(mockServer);
-
     // Spy on the repository methods
     getDetailedWalletSpy = jest.spyOn(VesprApiRepository, "getDetailedWallet");
     getAdaSpotPriceSpy = jest.spyOn(VesprApiRepository, "getAdaSpotPrice");
@@ -36,9 +21,22 @@ describe("get_wallet_balance tool", () => {
     jest.restoreAllMocks();
   });
 
+  it("registers getWalletBalanceHandler as the get_wallet_balance tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetWalletBalance(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_wallet_balance",
+      expect.objectContaining({ title: expect.any(String) }),
+      getWalletBalanceHandler,
+    );
+  });
+
   describe("input validation", () => {
     it("returns error for invalid address format", async () => {
-      const result = await registeredHandler({ address: "invalid-address" });
+      const result = await registeredHandler({ address: "invalid-address", currency: FiatCurrency.USD });
 
       expect(result).toEqual({
         content: [
@@ -56,7 +54,7 @@ describe("get_wallet_balance tool", () => {
     });
 
     it("returns error for empty address", async () => {
-      const result = await registeredHandler({ address: "" });
+      const result = await registeredHandler({ address: "", currency: FiatCurrency.USD });
 
       expect(result).toEqual({
         content: [
@@ -76,6 +74,7 @@ describe("get_wallet_balance tool", () => {
       const result = await registeredHandler({
         address:
           "DdzFFzCqrhsfYMUNRxtQ5NNKbWVw3ZJBNcMLLZSoqmD5trHHPBDwsjonoBgw1K6e8Qi8bEMs5Y62yZfReEVSFFMncFYDUHUTMM436KjQ",
+        currency: FiatCurrency.USD,
       });
 
       expect(result).toEqual({
@@ -97,7 +96,7 @@ describe("get_wallet_balance tool", () => {
 
       const result = await registeredHandler({
         address: validAddress,
-        currency: "INVALID" as FiatCurrency,
+        currency: "INVALID",
       });
 
       expect(result).toEqual({

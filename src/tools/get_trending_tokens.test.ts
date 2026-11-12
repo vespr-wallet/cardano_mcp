@@ -7,25 +7,10 @@ import type { TrendingTokensResponse, TrendingPeriod } from "../types/api/schema
 import { FiatCurrency, SupportedCurrency } from "../types/currency.js";
 
 describe("get_trending_tokens tool", () => {
-  let registeredHandler: (args: { currency?: string; period?: TrendingPeriod; limit?: number }) => Promise<unknown>;
+  const registeredHandler = getTrendingTokensHandler;
   let getTrendingTokensSpy: jest.SpiedFunction<typeof VesprApiRepository.getTrendingTokens>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (
-          _name: string,
-          _config: unknown,
-          handler: (args: { currency?: string; period?: TrendingPeriod; limit?: number }) => Promise<unknown>,
-        ) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetTrendingTokens(mockServer);
-
     // Spy on the repository method
     getTrendingTokensSpy = jest.spyOn(VesprApiRepository, "getTrendingTokens");
   });
@@ -48,6 +33,19 @@ describe("get_trending_tokens tool", () => {
     period_sales_count: 100,
     chart_data: null,
     ...overrides,
+  });
+
+  it("registers getTrendingTokensHandler as the get_trending_tokens tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetTrendingTokens(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_trending_tokens",
+      expect.objectContaining({ title: expect.any(String) }),
+      getTrendingTokensHandler,
+    );
   });
 
   describe("default request", () => {

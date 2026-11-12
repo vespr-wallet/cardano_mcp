@@ -1,36 +1,34 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetTransactionHistory } from "./get_transaction_history.js";
+import { registerGetTransactionHistory, getTransactionHistoryHandler } from "./get_transaction_history.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import type { TransactionHistoryResponse } from "../types/api/schemas.js";
 
 describe("get_transaction_history tool", () => {
-  let registeredHandler: (args: { address: string; to_block?: number }) => Promise<unknown>;
+  const registeredHandler = getTransactionHistoryHandler;
   let getTransactionHistorySpy: jest.SpiedFunction<typeof VesprApiRepository.getTransactionHistory>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (
-          _name: string,
-          _config: unknown,
-          handler: (args: { address: string; to_block?: number }) => Promise<unknown>,
-        ) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetTransactionHistory(mockServer);
-
     // Spy on the repository method
     getTransactionHistorySpy = jest.spyOn(VesprApiRepository, "getTransactionHistory");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("registers getTransactionHistoryHandler as the get_transaction_history tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetTransactionHistory(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_transaction_history",
+      expect.objectContaining({ title: expect.any(String) }),
+      getTransactionHistoryHandler,
+    );
   });
 
   describe("address validation", () => {

@@ -1,40 +1,35 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetTokenInfo, getTokenInfoHandler } from "./get_token_info.js";
+import { registerGetTokenInfo, getTokenInfoHandler, tokenInfoOutputSchema } from "./get_token_info.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import { TokenInfoResponseSchema, type TokenInfoResponse } from "../types/api/schemas.js";
 import { FiatCurrency } from "../types/currency.js";
-import type { z } from "zod";
 
 describe("get_token_info tool", () => {
-  let registeredHandler: (args: { unit: string; currency?: string }) => Promise<unknown>;
-  let registeredOutputSchema: z.ZodType;
+  const registeredHandler = getTokenInfoHandler;
   let getTokenInfoSpy: jest.SpiedFunction<typeof VesprApiRepository.getTokenInfo>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (
-          _name: string,
-          config: { outputSchema: z.ZodType },
-          handler: (args: { unit: string; currency?: string }) => Promise<unknown>,
-        ) => {
-          registeredOutputSchema = config.outputSchema;
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetTokenInfo(mockServer);
-
     // Spy on the repository method
     getTokenInfoSpy = jest.spyOn(VesprApiRepository, "getTokenInfo");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("registers getTokenInfoHandler as the get_token_info tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetTokenInfo(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_token_info",
+      expect.objectContaining({ outputSchema: tokenInfoOutputSchema }),
+      getTokenInfoHandler,
+    );
   });
 
   describe("input validation", () => {
@@ -188,7 +183,7 @@ describe("get_token_info tool", () => {
       };
 
       expect(result.isError).toBeUndefined();
-      expect(registeredOutputSchema.safeParse(result.structuredContent).success).toBe(true);
+      expect(tokenInfoOutputSchema.safeParse(result.structuredContent).success).toBe(true);
       expect(result.structuredContent).toMatchObject({ circSupply: null, fdv: null, mcap: null, totalSupply: null });
       expect(result.content[0].text).toContain("Price: N/A");
       expect(result.content[0].text).toContain("Market Cap: N/A");
@@ -215,7 +210,7 @@ describe("get_token_info tool", () => {
         structuredContent: unknown;
       };
 
-      expect(registeredOutputSchema.safeParse(result.structuredContent).success).toBe(true);
+      expect(tokenInfoOutputSchema.safeParse(result.structuredContent).success).toBe(true);
       expect(result.structuredContent).toMatchObject({
         ticker: null,
         description: null,
@@ -253,7 +248,7 @@ describe("get_token_info tool", () => {
         structuredContent: unknown;
       };
 
-      expect(registeredOutputSchema.safeParse(result.structuredContent).success).toBe(true);
+      expect(tokenInfoOutputSchema.safeParse(result.structuredContent).success).toBe(true);
       expect(result.structuredContent).toMatchObject({ circSupply: 5256000, mcap: 5256000, totalSupply: null });
       expect(result.content[0].text).toContain("Circulating Supply: 5,256,000");
       expect(result.content[0].text).toContain("Market Cap: 5,256,000 USD");

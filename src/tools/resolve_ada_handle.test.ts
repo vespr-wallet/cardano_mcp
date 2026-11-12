@@ -1,32 +1,34 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerResolveAdaHandle } from "./resolve_ada_handle.js";
+import { registerResolveAdaHandle, resolveAdaHandleHandler } from "./resolve_ada_handle.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import type { AdaHandleOwnerResponse } from "../types/api/schemas.js";
 
 describe("resolve_ada_handle tool", () => {
-  let registeredHandler: (args: { handle: string }) => Promise<unknown>;
+  const registeredHandler = resolveAdaHandleHandler;
   let resolveAdaHandleSpy: jest.SpiedFunction<typeof VesprApiRepository.resolveAdaHandle>;
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (_name: string, _config: unknown, handler: (args: { handle: string }) => Promise<unknown>) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerResolveAdaHandle(mockServer);
-
     // Spy on the repository method
     resolveAdaHandleSpy = jest.spyOn(VesprApiRepository, "resolveAdaHandle");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("registers resolveAdaHandleHandler as the resolve_ada_handle tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerResolveAdaHandle(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "resolve_ada_handle",
+      expect.objectContaining({ title: expect.any(String) }),
+      resolveAdaHandleHandler,
+    );
   });
 
   describe("input validation", () => {

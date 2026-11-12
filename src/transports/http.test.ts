@@ -14,6 +14,8 @@ jest.mock("../utils/logger.js", () => ({
   },
 }));
 
+const textResult = (text: string): HttpToolResult => ({ content: [{ type: "text", text }] });
+
 describe("HttpToolRegistry", () => {
   let registry: HttpToolRegistry;
 
@@ -28,7 +30,7 @@ describe("HttpToolRegistry", () => {
         title: "Test Tool",
         description: "A test tool",
         inputSchema: {},
-        handler: async () => ({ content: [{ type: "text", text: "test" }] }) as HttpToolResult,
+        handler: async () => textResult("test"),
       };
 
       registry.registerTool(tool);
@@ -43,14 +45,14 @@ describe("HttpToolRegistry", () => {
         title: "Test Tool 1",
         description: "First tool",
         inputSchema: {},
-        handler: async () => ({ content: [{ type: "text", text: "first" }] }) as HttpToolResult,
+        handler: async () => textResult("first"),
       };
       const tool2 = {
         name: "test_tool",
         title: "Test Tool 2",
         description: "Second tool",
         inputSchema: {},
-        handler: async () => ({ content: [{ type: "text", text: "second" }] }) as HttpToolResult,
+        handler: async () => textResult("second"),
       };
 
       registry.registerTool(tool1);
@@ -71,7 +73,7 @@ describe("HttpToolRegistry", () => {
         title: "My Tool",
         description: "Description",
         inputSchema: z.object({ param: z.string() }),
-        handler: async () => ({ content: [{ type: "text", text: "result" }] }) as HttpToolResult,
+        handler: async () => textResult("result"),
       };
 
       registry.registerTool(tool);
@@ -94,14 +96,14 @@ describe("HttpToolRegistry", () => {
         title: "Tool A",
         description: "A",
         inputSchema: {},
-        handler: async () => ({ content: [{ type: "text", text: "a" }] }) as HttpToolResult,
+        handler: async () => textResult("a"),
       };
       const tool2 = {
         name: "tool_b",
         title: "Tool B",
         description: "B",
         inputSchema: {},
-        handler: async () => ({ content: [{ type: "text", text: "b" }] }) as HttpToolResult,
+        handler: async () => textResult("b"),
       };
 
       registry.registerTool(tool1);
@@ -121,7 +123,7 @@ describe("HttpToolRegistry", () => {
         title: "List Test",
         description: "For listing",
         inputSchema: z.object({ input: z.string() }),
-        handler: async () => ({ content: [{ type: "text", text: "result" }] }) as HttpToolResult,
+        handler: async () => textResult("result"),
       };
 
       registry.registerTool(tool);
@@ -141,7 +143,7 @@ describe("HttpToolRegistry", () => {
         title: "No Input",
         description: "Tool with no input",
         inputSchema: {},
-        handler: async () => ({ content: [{ type: "text", text: "done" }] }) as HttpToolResult,
+        handler: async () => textResult("done"),
       };
 
       registry.registerTool(tool);
@@ -153,44 +155,35 @@ describe("HttpToolRegistry", () => {
 });
 
 describe("registerHttpRoutes", () => {
-  let mockServer: Partial<FastifyInstance>;
-  let registeredRoutes: Map<string, { method: string; handler: Function }>;
+  let server: FastifyInstance;
 
-  // Fails the test with a clear message when the route was never registered
-  const getRoute = (key: string): { method: string; handler: Function } => {
-    const route = registeredRoutes.get(key);
-    if (!route) {
-      throw new Error(`Route ${key} was not registered`);
-    }
-    return route;
-  };
-
-  beforeEach(() => {
-    registeredRoutes = new Map();
-
+  beforeEach(async () => {
     // Clear global registry before each test
     httpToolRegistry.clear();
-
-    mockServer = {
-      get: jest.fn((path: string, handler: Function) => {
-        registeredRoutes.set(`GET ${path}`, { method: "GET", handler });
-      }) as unknown as FastifyInstance["get"],
-      post: jest.fn((path: string, handler: Function) => {
-        registeredRoutes.set(`POST ${path}`, { method: "POST", handler });
-      }) as unknown as FastifyInstance["post"],
-    };
+    server = Fastify();
   });
 
-  it("should register GET /tools route", async () => {
-    await registerHttpRoutes(mockServer as FastifyInstance);
+  afterEach(async () => {
+    await server.close();
+    httpToolRegistry.clear();
+  });
 
-    expect(mockServer.get).toHaveBeenCalledWith("/tools", expect.any(Function));
+  // Registers the routes after the test has set up the registry, then waits for Fastify to be ready
+  const startServer = async (): Promise<void> => {
+    await registerHttpRoutes(server);
+    await server.ready();
+  };
+
+  it("should register GET /tools route", async () => {
+    await startServer();
+
+    expect(server.hasRoute({ method: "GET", url: "/tools" })).toBe(true);
   });
 
   it("should register POST /tools/:toolName route", async () => {
-    await registerHttpRoutes(mockServer as FastifyInstance);
+    await startServer();
 
-    expect(mockServer.post).toHaveBeenCalledWith("/tools/:toolName", expect.any(Function));
+    expect(server.hasRoute({ method: "POST", url: "/tools/:toolName" })).toBe(true);
   });
 
   describe("GET /tools handler", () => {
@@ -201,21 +194,15 @@ describe("registerHttpRoutes", () => {
         title: "Test List",
         description: "Test description",
         inputSchema: {},
-        handler: async () => ({ content: [{ type: "text", text: "test" }] }) as HttpToolResult,
+        handler: async () => textResult("test"),
       });
 
-      await registerHttpRoutes(mockServer as FastifyInstance);
+      await startServer();
 
-      const route = getRoute("GET /tools");
+      const response = await server.inject({ method: "GET", url: "/tools" });
 
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler({}, mockReply);
-
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
         tools: expect.arrayContaining([
           expect.objectContaining({
             name: "test_list",
@@ -228,17 +215,12 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return empty list when no tools registered", async () => {
-      await registerHttpRoutes(mockServer as FastifyInstance);
+      await startServer();
 
-      const route = getRoute("GET /tools");
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
+      const response = await server.inject({ method: "GET", url: "/tools" });
 
-      await route.handler({}, mockReply);
-
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
         tools: [],
         count: 0,
       });
@@ -261,44 +243,31 @@ describe("registerHttpRoutes", () => {
         }),
       });
 
-      await registerHttpRoutes(mockServer as FastifyInstance);
+      await startServer();
     });
 
     it("should execute a tool and return result", async () => {
-      const route = getRoute("POST /tools/:toolName");
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/echo_tool",
+        payload: { arguments: { message: "hello" } },
+      });
 
-      const mockRequest = {
-        params: { toolName: "echo_tool" },
-        body: { arguments: { message: "hello" } },
-      };
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler(mockRequest, mockReply);
-
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
         result: { echoed: "hello" },
       });
     });
 
     it("should return 404 for non-existent tool", async () => {
-      const route = getRoute("POST /tools/:toolName");
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/non_existent_tool",
+        payload: { arguments: {} },
+      });
 
-      const mockRequest = {
-        params: { toolName: "non_existent_tool" },
-        body: { arguments: {} },
-      };
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler(mockRequest, mockReply);
-
-      expect(mockReply.status).toHaveBeenCalledWith(404);
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toEqual({
         error: {
           code: "TOOL_NOT_FOUND",
           message: "Tool 'non_existent_tool' not found",
@@ -308,21 +277,14 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 400 for invalid request body", async () => {
-      const route = getRoute("POST /tools/:toolName");
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/echo_tool",
+        payload: { arguments: "not-an-object" }, // Invalid - should be object
+      });
 
-      const mockRequest = {
-        params: { toolName: "echo_tool" },
-        body: { arguments: "not-an-object" }, // Invalid - should be object
-      };
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler(mockRequest, mockReply);
-
-      expect(mockReply.status).toHaveBeenCalledWith(400);
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toEqual({
         error: {
           code: "INVALID_REQUEST",
           message: "Invalid request body",
@@ -332,21 +294,14 @@ describe("registerHttpRoutes", () => {
     });
 
     it("should return 400 for invalid tool arguments", async () => {
-      const route = getRoute("POST /tools/:toolName");
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/echo_tool",
+        payload: { arguments: { message: 123 } }, // Invalid - should be string
+      });
 
-      const mockRequest = {
-        params: { toolName: "echo_tool" },
-        body: { arguments: { message: 123 } }, // Invalid - should be string
-      };
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler(mockRequest, mockReply);
-
-      expect(mockReply.status).toHaveBeenCalledWith(400);
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toEqual({
         error: {
           code: "INVALID_ARGUMENTS",
           message: "Invalid tool arguments",
@@ -367,21 +322,14 @@ describe("registerHttpRoutes", () => {
         },
       });
 
-      const route = getRoute("POST /tools/:toolName");
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/error_tool",
+        payload: { arguments: {} },
+      });
 
-      const mockRequest = {
-        params: { toolName: "error_tool" },
-        body: { arguments: {} },
-      };
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler(mockRequest, mockReply);
-
-      expect(mockReply.status).toHaveBeenCalledWith(500);
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(500);
+      expect(response.json()).toEqual({
         error: {
           code: "EXECUTION_ERROR",
           message: "Something went wrong",
@@ -395,25 +343,17 @@ describe("registerHttpRoutes", () => {
         title: "Text Only",
         description: "Returns only text content",
         inputSchema: {},
-        handler: async () => ({
-          content: [{ type: "text", text: "Just text" }],
-        }),
+        handler: async () => textResult("Just text"),
       });
 
-      const route = getRoute("POST /tools/:toolName");
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/text_only_tool",
+        payload: { arguments: {} },
+      });
 
-      const mockRequest = {
-        params: { toolName: "text_only_tool" },
-        body: { arguments: {} },
-      };
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler(mockRequest, mockReply);
-
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
         result: [{ type: "text", text: "Just text" }],
       });
     });
@@ -430,20 +370,14 @@ describe("registerHttpRoutes", () => {
         }),
       });
 
-      const route = getRoute("POST /tools/:toolName");
+      const response = await server.inject({
+        method: "POST",
+        url: "/tools/no_args_tool",
+        payload: {}, // No arguments field
+      });
 
-      const mockRequest = {
-        params: { toolName: "no_args_tool" },
-        body: {}, // No arguments field
-      };
-      const mockReply = {
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-      };
-
-      await route.handler(mockRequest, mockReply);
-
-      expect(mockReply.send).toHaveBeenCalledWith({
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
         result: { success: true },
       });
     });
@@ -458,8 +392,6 @@ describe("Global httpToolRegistry", () => {
 
 describe("registerHttpRoutes over a real Fastify instance", () => {
   let server: FastifyInstance;
-
-  const textResult = (text: string): HttpToolResult => ({ content: [{ type: "text", text }] });
 
   beforeEach(async () => {
     httpToolRegistry.clear();

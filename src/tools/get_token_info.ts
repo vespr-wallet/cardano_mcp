@@ -6,7 +6,7 @@ import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { FiatCurrency, SupportedCurrency, SUPPORTED_CURRENCIES } from "../types/currency.js";
 
 // Output schema matching TokenInfoResponse.data
-const tokenInfoOutputSchema = z.object({
+export const tokenInfoOutputSchema = z.object({
   subject: z.string(),
   name: z.string(),
   ticker: z.string().nullable(),

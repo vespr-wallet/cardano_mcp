@@ -1,37 +1,25 @@
-import { jest, describe, it, expect, beforeEach } from "@jest/globals";
+import { jest, describe, it, expect } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetSupportedCurrencies } from "./get_supported_currencies.js";
+import { registerGetSupportedCurrencies, getSupportedCurrenciesHandler } from "./get_supported_currencies.js";
 import { SUPPORTED_FIAT_CURRENCIES, SUPPORTED_CRYPTO_CURRENCIES } from "../types/currency.js";
 
 describe("get_supported_currencies tool", () => {
-  let registeredHandler: () => Promise<unknown>;
-
-  beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn((_name: string, _config: unknown, handler: () => Promise<unknown>) => {
-        registeredHandler = handler;
-      }),
-    } as unknown as McpServer;
-
-    registerGetSupportedCurrencies(mockServer);
-  });
+  const registeredHandler = getSupportedCurrenciesHandler;
 
   describe("tool registration", () => {
     it("registers the tool with correct name", () => {
-      const mockServer = {
-        registerTool: jest.fn(),
-      } as unknown as McpServer;
+      const server = new McpServer({ name: "test", version: "0.0.0" });
+      const registerTool = jest.spyOn(server, "registerTool");
 
-      registerGetSupportedCurrencies(mockServer);
+      registerGetSupportedCurrencies(server);
 
-      expect(mockServer.registerTool).toHaveBeenCalledWith(
+      expect(registerTool).toHaveBeenCalledWith(
         "get_supported_currencies",
         expect.objectContaining({
           title: "Get Supported Currencies",
           description: expect.any(String),
         }),
-        expect.any(Function),
+        getSupportedCurrenciesHandler,
       );
     });
   });

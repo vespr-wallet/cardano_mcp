@@ -12,19 +12,22 @@ import {
 } from "../types/api/schemas.js";
 
 describe("get_staking_info tool", () => {
-  let registeredHandler: (args: { address: string }) => Promise<unknown>;
+  const registeredHandler = getStakingInfoHandler;
   let getStakingInfoSpy: jest.SpiedFunction<typeof VesprApiRepository.getStakingInfo>;
+
+  // Non-null pool metadata, so tests can spread it into their own overrides
+  const mockPoolMeta: NonNullable<StakePoolInfo["meta"]> = {
+    name: "Test Pool",
+    ticker: "TEST",
+    homepage: "https://testpool.io",
+    description: "A test pool",
+    image: { type: "URL_IMAGE", image: "https://testpool.io/logo.png" },
+  };
 
   // Helper to create mock pool info
   const createMockPool = (overrides?: Partial<StakePoolInfo>): StakePoolInfo => ({
     pool_id: "pool1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    meta: {
-      name: "Test Pool",
-      ticker: "TEST",
-      homepage: "https://testpool.io",
-      description: "A test pool",
-      image: { type: "URL_IMAGE" as const, image: "https://testpool.io/logo.png" },
-    },
+    meta: mockPoolMeta,
     apy: 0.0412,
     saturation: 0.75,
     ...overrides,
@@ -43,23 +46,25 @@ describe("get_staking_info tool", () => {
   });
 
   beforeEach(() => {
-    // Create a mock server that captures the registered tool handler
-    const mockServer = {
-      registerTool: jest.fn(
-        (_name: string, _config: unknown, handler: (args: { address: string }) => Promise<unknown>) => {
-          registeredHandler = handler;
-        },
-      ),
-    } as unknown as McpServer;
-
-    registerGetStakingInfo(mockServer);
-
     // Spy on the repository method
     getStakingInfoSpy = jest.spyOn(VesprApiRepository, "getStakingInfo");
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("registers getStakingInfoHandler as the get_staking_info tool", () => {
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    const registerTool = jest.spyOn(server, "registerTool");
+
+    registerGetStakingInfo(server);
+
+    expect(registerTool).toHaveBeenCalledWith(
+      "get_staking_info",
+      expect.objectContaining({ title: expect.any(String) }),
+      getStakingInfoHandler,
+    );
   });
 
   describe("address validation", () => {
@@ -204,8 +209,8 @@ describe("get_staking_info tool", () => {
         first_rewards_on_re_delegation_time_utc: 1700600000000,
         last_registration_first_earning_time_utc: 1699500000000,
         wallet_apy: 0.045,
-        active_pool: createMockPool({ meta: { ...createMockPool().meta!, name: "Active Pool", ticker: "ACTV" } }),
-        suggested_pool: createMockPool({ meta: { ...createMockPool().meta!, name: "Better Pool", ticker: "BTTR" } }),
+        active_pool: createMockPool({ meta: { ...mockPoolMeta, name: "Active Pool", ticker: "ACTV" } }),
+        suggested_pool: createMockPool({ meta: { ...mockPoolMeta, name: "Better Pool", ticker: "BTTR" } }),
         next_reward: createMockReward({ lovelace: "2000000", time_utc: 1700600000000 }),
         past_rewards: [createMockReward(), createMockReward()],
         future_rewards: [createMockReward()],
@@ -304,7 +309,7 @@ describe("get_staking_info tool", () => {
         epoch_start_time_utc: 1699900000000,
         epoch_end_time_utc: 1700500000000,
         first_rewards_on_re_delegation_time_utc: 1700600000000,
-        suggested_pool: createMockPool({ meta: { ...createMockPool().meta!, name: "Comeback Pool", ticker: "CMBC" } }),
+        suggested_pool: createMockPool({ meta: { ...mockPoolMeta, name: "Comeback Pool", ticker: "CMBC" } }),
         past_rewards: [createMockReward(), createMockReward(), createMockReward()],
       };
 
