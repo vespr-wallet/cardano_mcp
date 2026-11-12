@@ -1,11 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { SUPPORTED_FIAT_CURRENCIES, SUPPORTED_CRYPTO_CURRENCIES, SUPPORTED_CURRENCIES } from "../types/currency.js";
+import { SUPPORTED_FIAT_CURRENCIES, SUPPORTED_CRYPTO_CURRENCIES } from "../types/currency.js";
 
 /**
  * Handler for get_supported_currencies tool
  */
-export async function getSupportedCurrenciesHandler(): Promise<{
+export function getSupportedCurrenciesHandler(): Promise<{
   content: Array<{ type: "text"; text: string }>;
   structuredContent: { fiat: string[]; crypto: string[] };
 }> {
@@ -20,7 +20,7 @@ export async function getSupportedCurrenciesHandler(): Promise<{
     `Supported Crypto Currencies (${SUPPORTED_CRYPTO_CURRENCIES.length}): ${SUPPORTED_CRYPTO_CURRENCIES.join(", ")}`,
   ].join("\n");
 
-  return {
+  return Promise.resolve({
     content: [
       {
         type: "text" as const,
@@ -28,7 +28,7 @@ export async function getSupportedCurrenciesHandler(): Promise<{
       },
     ],
     structuredContent: output,
-  };
+  });
 }
 
 export function registerGetSupportedCurrencies(server: McpServer): void {

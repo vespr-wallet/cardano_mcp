@@ -30,7 +30,7 @@ describe("HttpToolRegistry", () => {
         title: "Test Tool",
         description: "A test tool",
         inputSchema: z.object({}),
-        handler: async () => textResult("test"),
+        handler: () => Promise.resolve(textResult("test")),
       };
 
       registry.registerTool(tool);
@@ -45,14 +45,14 @@ describe("HttpToolRegistry", () => {
         title: "Test Tool 1",
         description: "First tool",
         inputSchema: z.object({}),
-        handler: async () => textResult("first"),
+        handler: () => Promise.resolve(textResult("first")),
       };
       const tool2 = {
         name: "test_tool",
         title: "Test Tool 2",
         description: "Second tool",
         inputSchema: z.object({}),
-        handler: async () => textResult("second"),
+        handler: () => Promise.resolve(textResult("second")),
       };
 
       registry.registerTool(tool1);
@@ -73,7 +73,7 @@ describe("HttpToolRegistry", () => {
         title: "My Tool",
         description: "Description",
         inputSchema: z.object({ param: z.string() }),
-        handler: async () => textResult("result"),
+        handler: () => Promise.resolve(textResult("result")),
       };
 
       registry.registerTool(tool);
@@ -96,14 +96,14 @@ describe("HttpToolRegistry", () => {
         title: "Tool A",
         description: "A",
         inputSchema: z.object({}),
-        handler: async () => textResult("a"),
+        handler: () => Promise.resolve(textResult("a")),
       };
       const tool2 = {
         name: "tool_b",
         title: "Tool B",
         description: "B",
         inputSchema: z.object({}),
-        handler: async () => textResult("b"),
+        handler: () => Promise.resolve(textResult("b")),
       };
 
       registry.registerTool(tool1);
@@ -123,7 +123,7 @@ describe("HttpToolRegistry", () => {
         title: "List Test",
         description: "For listing",
         inputSchema: z.object({ input: z.string() }),
-        handler: async () => textResult("result"),
+        handler: () => Promise.resolve(textResult("result")),
       };
 
       registry.registerTool(tool);
@@ -143,7 +143,7 @@ describe("HttpToolRegistry", () => {
         title: "No Input",
         description: "Tool with no input",
         inputSchema: z.object({}),
-        handler: async () => textResult("done"),
+        handler: () => Promise.resolve(textResult("done")),
       };
 
       registry.registerTool(tool);
@@ -157,7 +157,7 @@ describe("HttpToolRegistry", () => {
 describe("registerHttpRoutes", () => {
   let server: FastifyInstance;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     // Clear global registry before each test
     httpToolRegistry.clear();
     server = Fastify();
@@ -170,7 +170,7 @@ describe("registerHttpRoutes", () => {
 
   // Registers the routes after the test has set up the registry, then waits for Fastify to be ready
   const startServer = async (): Promise<void> => {
-    await registerHttpRoutes(server);
+    registerHttpRoutes(server);
     await server.ready();
   };
 
@@ -194,7 +194,7 @@ describe("registerHttpRoutes", () => {
         title: "Test List",
         description: "Test description",
         inputSchema: z.object({}),
-        handler: async () => textResult("test"),
+        handler: () => Promise.resolve(textResult("test")),
       });
 
       await startServer();
@@ -237,10 +237,11 @@ describe("registerHttpRoutes", () => {
         inputSchema: z.object({
           message: z.string(),
         }),
-        handler: async (args: Record<string, unknown>) => ({
-          content: [{ type: "text", text: `Echo: ${args.message}` }],
-          structuredContent: { echoed: args.message },
-        }),
+        handler: (args) =>
+          Promise.resolve({
+            content: [{ type: "text", text: `Echo: ${args.message}` }],
+            structuredContent: { echoed: args.message },
+          }),
       });
 
       await startServer();
@@ -317,9 +318,7 @@ describe("registerHttpRoutes", () => {
         title: "Error Tool",
         description: "Throws an error",
         inputSchema: z.object({}),
-        handler: async () => {
-          throw new Error("Something went wrong");
-        },
+        handler: () => Promise.reject(new Error("Something went wrong")),
       });
 
       const response = await server.inject({
@@ -343,7 +342,7 @@ describe("registerHttpRoutes", () => {
         title: "Text Only",
         description: "Returns only text content",
         inputSchema: z.object({}),
-        handler: async () => textResult("Just text"),
+        handler: () => Promise.resolve(textResult("Just text")),
       });
 
       const response = await server.inject({
@@ -364,10 +363,11 @@ describe("registerHttpRoutes", () => {
         title: "No Args",
         description: "Needs no arguments",
         inputSchema: z.object({}),
-        handler: async () => ({
-          content: [{ type: "text", text: "Done" }],
-          structuredContent: { success: true },
-        }),
+        handler: () =>
+          Promise.resolve({
+            content: [{ type: "text", text: "Done" }],
+            structuredContent: { success: true },
+          }),
       });
 
       const response = await server.inject({
@@ -396,7 +396,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
   beforeEach(async () => {
     httpToolRegistry.clear();
     server = Fastify();
-    await registerHttpRoutes(server);
+    registerHttpRoutes(server);
     await server.ready();
   });
 
@@ -425,7 +425,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       title: "Known",
       description: "Known tool",
       inputSchema: z.object({}),
-      handler: async () => textResult("ok"),
+      handler: () => Promise.resolve(textResult("ok")),
     });
 
     const response = await server.inject({ method: "POST", url: "/tools/missing_tool", payload: {} });
@@ -446,13 +446,14 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       title: "Failing",
       description: "Returns an error result",
       inputSchema: z.object({}),
-      handler: async () => ({
-        content: [
-          { type: "text", text: "Error: upstream down" },
-          { type: "text", text: "Try again later" },
-        ],
-        isError: true,
-      }),
+      handler: () =>
+        Promise.resolve({
+          content: [
+            { type: "text", text: "Error: upstream down" },
+            { type: "text", text: "Try again later" },
+          ],
+          isError: true,
+        }),
     });
 
     const response = await server.inject({ method: "POST", url: "/tools/failing_tool", payload: {} });
@@ -469,9 +470,7 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       title: "Lookup",
       description: "Throws a not-found error",
       inputSchema: z.object({}),
-      handler: async () => {
-        throw new Error("Asset not found in index");
-      },
+      handler: () => Promise.reject(new Error("Asset not found in index")),
     });
 
     const response = await server.inject({ method: "POST", url: "/tools/lookup_tool", payload: {} });
@@ -483,12 +482,16 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
   });
 
   it("maps a thrown non-Error value to 500 with a generic message", async () => {
+    const plainStringFailure: unknown = "plain string failure";
     httpToolRegistry.registerTool({
       name: "weird_tool",
       title: "Weird",
       description: "Throws a string",
       inputSchema: z.object({}),
-      handler: () => Promise.reject("plain string failure"),
+      handler: () => {
+        // Typed unknown on purpose: this covers a tool that throws a non-Error value
+        throw plainStringFailure;
+      },
     });
 
     const response = await server.inject({ method: "POST", url: "/tools/weird_tool", payload: {} });
@@ -506,9 +509,9 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
       title: "Key",
       description: "Records the API key it runs with",
       inputSchema: z.object({}),
-      handler: async () => {
+      handler: () => {
         seenKeys.push(getCurrentApiKey());
-        return textResult("ok");
+        return Promise.resolve(textResult("ok"));
       },
     });
 
@@ -534,9 +537,9 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
         currency: z.preprocess((val) => (val === "" ? undefined : val), z.string().default("USD")),
         period: z.string().default("24H"),
       }),
-      handler: async (args) => {
+      handler: (args) => {
         received.push(args);
-        return textResult("ok");
+        return Promise.resolve(textResult("ok"));
       },
     });
 

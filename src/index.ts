@@ -61,7 +61,7 @@ async function main(): Promise<void> {
 function shutdown(signal: string): void {
   logger.info("server_shutdown", { signal });
   if (httpServer) {
-    httpServer.close().finally(() => process.exit(0));
+    void httpServer.close().finally(() => process.exit(0));
   } else {
     process.exit(0);
   }

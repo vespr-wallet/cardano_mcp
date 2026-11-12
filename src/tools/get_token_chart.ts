@@ -26,7 +26,7 @@ const tokenChartOutputSchema = z.object({
 /**
  * Format a number with appropriate precision for price display
  */
-function formatPrice(value: number, currency: string): string {
+function formatPrice(value: number, currency: SupportedCurrency): string {
   // Use more decimal places for ADA since token prices can be small fractions
   const decimals = currency === CryptoCurrency.ADA ? 6 : 2;
   const formatted = value.toFixed(decimals);

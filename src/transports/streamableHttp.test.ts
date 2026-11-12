@@ -24,7 +24,7 @@ describe("registerStreamableHttpRoutes", () => {
 
   async function startServer(sessionTtlMs: number): Promise<void> {
     server = Fastify({ forceCloseConnections: true });
-    await registerStreamableHttpRoutes(server, sessionTtlMs);
+    registerStreamableHttpRoutes(server, sessionTtlMs);
     baseUrl = await server.listen({ port: 0, host: "127.0.0.1" });
   }
 
@@ -149,9 +149,9 @@ describe("registerStreamableHttpRoutes", () => {
 
     it("runs tool calls with the API key the session was created with", async () => {
       const seenKeys: Array<string | undefined> = [];
-      jest.spyOn(VesprApiRepository, "resolveAdaHandle").mockImplementation(async () => {
+      jest.spyOn(VesprApiRepository, "resolveAdaHandle").mockImplementation(() => {
         seenKeys.push(getCurrentApiKey());
-        return { owner: "addr1owner" };
+        return Promise.resolve({ owner: "addr1owner" });
       });
 
       const withKey = await connectClient("session-key-1");
@@ -215,10 +215,10 @@ describe("registerStreamableHttpRoutes", () => {
     });
 
     it("POST terminates the response when the transport throws after starting it", async () => {
-      jest.spyOn(StreamableHTTPServerTransport.prototype, "handleRequest").mockImplementationOnce(async (_req, res) => {
+      jest.spyOn(StreamableHTTPServerTransport.prototype, "handleRequest").mockImplementationOnce((_req, res) => {
         res.writeHead(200, { "content-type": "text/event-stream" });
         res.write("event: message\n\n");
-        throw new Error("failed mid-stream");
+        return Promise.reject(new Error("failed mid-stream"));
       });
 
       const response = await request("POST");

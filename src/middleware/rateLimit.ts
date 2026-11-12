@@ -24,7 +24,7 @@ export function createDualWindowStore(
   return class implements FastifyRateLimitStore {
     private entries = new Map<string, Entry>();
 
-    constructor(_options: unknown) {
+    constructor() {
       const interval = setInterval(() => this.cleanup(), CLEANUP_INTERVAL_MS);
       // Don't keep the process alive just for the cleanup timer
       interval.unref();
@@ -54,7 +54,7 @@ export function createDualWindowStore(
       cb(null, { current: entry.minuteTs.length, ttl });
     }
 
-    child(_routeOptions: unknown): FastifyRateLimitStore {
+    child(): FastifyRateLimitStore {
       return this;
     }
 

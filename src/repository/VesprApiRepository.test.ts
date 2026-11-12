@@ -351,9 +351,11 @@ describe("VesprApiRepository", () => {
     });
 
     it("caches token info per unit and currency", async () => {
-      fetchTokenInfoSpy.mockImplementation(async (unit, currency): Promise<TokenInfoResponse> => ({
-        data: { subject: unit, name: "Cached", decimals: 0, verified: false, currency: currency ?? FiatCurrency.USD },
-      }));
+      fetchTokenInfoSpy.mockImplementation((unit, currency): Promise<TokenInfoResponse> =>
+        Promise.resolve({
+          data: { subject: unit, name: "Cached", decimals: 0, verified: false, currency: currency ?? FiatCurrency.USD },
+        }),
+      );
 
       await VesprApiRepository.getTokenInfo("cacheunit", FiatCurrency.USD);
       const cachedUsd = await VesprApiRepository.getTokenInfo("cacheunit", FiatCurrency.USD);

@@ -3,8 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetTrendingTokens, getTrendingTokensHandler } from "./get_trending_tokens.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
-import type { TrendingTokensResponse, TrendingPeriod } from "../types/api/schemas.js";
-import { FiatCurrency, SupportedCurrency } from "../types/currency.js";
+import type { TrendingTokensResponse } from "../types/api/schemas.js";
+import { FiatCurrency } from "../types/currency.js";
 
 describe("get_trending_tokens tool", () => {
   const registeredHandler = getTrendingTokensHandler;

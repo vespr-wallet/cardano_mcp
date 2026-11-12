@@ -73,26 +73,21 @@ export async function getTransactionHistoryHandler({
     const response = await VesprApiRepository.getTransactionHistory(address, to_block);
 
     // Transform transactions for output
-    const transactions = response.transactions.map((tx) => {
-      const apiDirection = tx.direction;
-      return {
-        txHash: tx.txHash,
-        timestamp: tx.timestamp,
-        blockHeight: tx.blockHeight,
-        direction: directionLabels[apiDirection],
-        adaAmount: lovelaceToAda(tx.lovelace),
-        fee: lovelaceToAda(tx.txFee),
-        assetCount: tx.assets.length,
-        _apiDirection: apiDirection, // Keep for display formatting
-      };
-    });
+    const transactions = response.transactions.map((tx) => ({
+      txHash: tx.txHash,
+      timestamp: tx.timestamp,
+      blockHeight: tx.blockHeight,
+      direction: directionLabels[tx.direction],
+      adaAmount: lovelaceToAda(tx.lovelace),
+      fee: lovelaceToAda(tx.txFee),
+      assetCount: tx.assets.length,
+    }));
 
-    // Build structured output (excluding internal _apiDirection)
     const output = {
       sinceBlock: response.sinceBlock,
       toBlock: response.toBlock,
       transactionCount: transactions.length,
-      transactions: transactions.map(({ _apiDirection, ...tx }) => tx),
+      transactions,
     };
 
     // Format human-readable summary using direction symbols and amount prefixes
@@ -100,12 +95,11 @@ export async function getTransactionHistoryHandler({
       `Transaction History (blocks ${response.sinceBlock} - ${response.toBlock})`,
       `Total: ${transactions.length} transaction(s)`,
       "",
-      ...transactions
-        .slice(0, 10)
-        .map(
-          (tx) =>
-            `${directionSymbols[tx._apiDirection]} ${directionAmountPrefix[tx._apiDirection]}${tx.adaAmount} ADA | ${tx.direction} | ${tx.timestamp} | ${tx.assetCount} assets | ${tx.txHash.slice(0, 16)}...`,
-        ),
+      ...transactions.slice(0, 10).map((tx, i) => {
+        // transactions maps response.transactions 1:1, so the index lines up
+        const apiDirection = response.transactions[i].direction;
+        return `${directionSymbols[apiDirection]} ${directionAmountPrefix[apiDirection]}${tx.adaAmount} ADA | ${tx.direction} | ${tx.timestamp} | ${tx.assetCount} assets | ${tx.txHash.slice(0, 16)}...`;
+      }),
       transactions.length > 10 ? `... and ${transactions.length - 10} more` : "",
     ]
       .filter(Boolean)

@@ -12,6 +12,14 @@ const assetMetadataOutputSchema = z.object({
 });
 
 /**
+ * Formats a non-object metadata value. Metadata comes from JSON, so this is a string, number,
+ * boolean or null.
+ */
+function formatScalar(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+/**
  * Formats nested metadata as a human-readable string
  */
 function formatMetadata(metadata: object, indent: number = 0): string {
@@ -22,21 +30,22 @@ function formatMetadata(metadata: object, indent: number = 0): string {
   for (const [key, value] of entries) {
     if (value === null || value === undefined) {
       lines.push(`${indentStr}${key}: null`);
-    } else if (typeof value === "object" && !Array.isArray(value)) {
-      lines.push(`${indentStr}${key}:`);
-      lines.push(formatMetadata(value, indent + 1));
     } else if (Array.isArray(value)) {
       lines.push(`${indentStr}${key}:`);
-      for (const item of value) {
+      const items: unknown[] = value;
+      for (const item of items) {
         if (typeof item === "object" && item !== null) {
           lines.push(`${indentStr}  -`);
           lines.push(formatMetadata(item, indent + 2));
         } else {
-          lines.push(`${indentStr}  - ${String(item)}`);
+          lines.push(`${indentStr}  - ${formatScalar(item)}`);
         }
       }
+    } else if (typeof value === "object") {
+      lines.push(`${indentStr}${key}:`);
+      lines.push(formatMetadata(value, indent + 1));
     } else {
-      lines.push(`${indentStr}${key}: ${String(value)}`);
+      lines.push(`${indentStr}${key}: ${formatScalar(value)}`);
     }
   }
 

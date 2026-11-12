@@ -98,7 +98,7 @@ function sendInternalServerError(reply: FastifyReply): void {
   }
 }
 
-export async function registerStreamableHttpRoutes(server: FastifyInstance, sessionTtlMs: number): Promise<void> {
+export function registerStreamableHttpRoutes(server: FastifyInstance, sessionTtlMs: number): void {
   const cleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [sid, session] of sessions.entries()) {
@@ -110,8 +110,9 @@ export async function registerStreamableHttpRoutes(server: FastifyInstance, sess
     }
   }, SESSION_CLEANUP_INTERVAL_MS);
 
-  server.addHook("onClose", async () => {
+  server.addHook("onClose", (_instance, done) => {
     clearInterval(cleanupInterval);
+    done();
   });
 
   server.post("/", async (request: FastifyRequest, reply: FastifyReply) => {
