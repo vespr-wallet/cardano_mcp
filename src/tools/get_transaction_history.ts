@@ -33,13 +33,6 @@ const directionSymbols: Record<ApiDirection, string> = {
   multisig: "\u21C6", // LEFT RIGHT ARROW WITH STROKE
 };
 
-const directionAmountPrefix: Record<ApiDirection, string> = {
-  externalIn: "+",
-  externalOut: "-",
-  self: "",
-  multisig: "",
-};
-
 const historyOutputSchema = z.object({
   sinceBlock: z.number(),
   toBlock: z.number(),
@@ -98,7 +91,9 @@ export async function getTransactionHistoryHandler({
       ...transactions.slice(0, 10).map((tx, i) => {
         // transactions maps response.transactions 1:1, so the index lines up
         const apiDirection = response.transactions[i].direction;
-        return `${directionSymbols[apiDirection]} ${directionAmountPrefix[apiDirection]}${tx.adaAmount} ADA | ${tx.direction} | ${tx.timestamp} | ${tx.assetCount} assets | ${tx.txHash.slice(0, 16)}...`;
+        // adaAmount is signed (sent amounts are negative), so only positive amounts need a "+"
+        const sign = tx.adaAmount.startsWith("-") ? "" : "+";
+        return `${directionSymbols[apiDirection]} ${sign}${tx.adaAmount} ADA | ${tx.direction} | ${tx.timestamp} | ${tx.assetCount} assets | ${tx.txHash.slice(0, 16)}...`;
       }),
       transactions.length > 10 ? `... and ${transactions.length - 10} more` : "",
     ]

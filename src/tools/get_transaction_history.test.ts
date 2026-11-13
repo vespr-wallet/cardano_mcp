@@ -86,7 +86,7 @@ describe("get_transaction_history tool", () => {
             extra: [],
             txFee: "200000",
             deposit: "0",
-            lovelace: "2500000",
+            lovelace: "-2152300",
             assets: [
               {
                 unit: "token1",
@@ -128,7 +128,7 @@ describe("get_transaction_history tool", () => {
             timestamp: "2023-11-14T12:01:40Z",
             blockHeight: 100105,
             direction: "Sent",
-            adaAmount: "2.500000",
+            adaAmount: "-2.152300",
             fee: "0.200000",
             assetCount: 1,
           },
@@ -139,7 +139,7 @@ describe("get_transaction_history tool", () => {
       expect(result.content[0].text).toContain("\u2193"); // DOWN arrow for Received
       expect(result.content[0].text).toContain("\u2191"); // UP arrow for Sent
       expect(result.content[0].text).toContain("+5.000000 ADA"); // + prefix for received
-      expect(result.content[0].text).toContain("-2.500000 ADA"); // - prefix for sent
+      expect(result.content[0].text).toContain("-2.152300 ADA"); // API sends signed net change: single minus, no "--" or "-2.-152300"
       expect(result.content[0].text).toContain("Received");
       expect(result.content[0].text).toContain("Sent");
     });
