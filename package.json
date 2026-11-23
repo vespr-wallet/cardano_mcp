@@ -28,9 +28,9 @@
     "lint": "eslint . --max-warnings=0"
   },
   "dependencies": {
-    "@fastify/cors": "^11.4.1",
+    "@fastify/cors": "^11.4.3",
     "@fastify/rate-limit": "^11.2.2",
-    "@fastify/sensible": "^6.0.7",
+    "@fastify/sensible": "^6.0.8",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "fastify": "^5.12.8",
     "lru-cache": "^11.5.3",
@@ -40,14 +40,14 @@
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.19.2",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^30.5.2",
-    "prettier": "^3.9.10",
+    "prettier": "^3.10.1",
     "ts-jest": "^29.4.15",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.2"
+    "typescript-eslint": "^8.73.0"
   },
   "license": "MIT",
   "overrides": {
