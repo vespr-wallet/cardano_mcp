@@ -140,13 +140,13 @@ describe("get_swap_quote tool", () => {
         price: "12500",
         inverse_price: "0.00008",
         price_impact_percent: "1.234567",
-        batcher_fee_ada: "1.500000",
-        deposit_ada: "3.500000",
-        aggregator_fee_ada: "0.500000",
+        batcher_fee_ada: "1.5",
+        deposit_ada: "3.5",
+        aggregator_fee_ada: "0.5",
         currency: "USD",
         route: [
-          { dex: "Minswap", share_percent: "70", batcher_fee_ada: "1.000000", deposit_ada: "2.000000" },
-          { dex: "Splash", share_percent: "30", batcher_fee_ada: "0.500000", deposit_ada: "1.500000" },
+          { dex: "Minswap", share_percent: "70", batcher_fee_ada: "1", deposit_ada: "2" },
+          { dex: "Splash", share_percent: "30", batcher_fee_ada: "0.5", deposit_ada: "1.5" },
         ],
       },
     });

@@ -300,6 +300,19 @@ describe("get_swap_orders tool", () => {
     expect(result.content[0]?.text).toBe(`No swap order found for transaction ${OPEN_TX}.`);
   });
 
+  it("rounds float noise in amounts to each token's decimals", async () => {
+    historySpy.mockResolvedValue({
+      data: [{ ...openOrder, expected_out_amount: "37418079.00000001", aggregator_fee: "0.25000000000000006" }],
+    });
+
+    const result = await getSwapOrdersHandler({ address: ADDRESS, open_only: false });
+
+    const order = result.structuredContent?.orders[0];
+    expect(order?.expected_amount_out).toBe("37418079");
+    expect(order?.splits[0]?.expected_amount_out).toBe("37418079");
+    expect(order?.aggregator_fee_ada).toBe("0.25");
+  });
+
   it("shows units as names when the token lookup fails", async () => {
     summarySpy.mockRejectedValue(new VesprApiError("Summary failed", 500));
 
