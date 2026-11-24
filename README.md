@@ -162,6 +162,7 @@ Once connected, ask your AI assistant questions like:
 
 - "What's the balance of addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv in USD?"
 - "Show me the transaction history for this wallet"
+- "Has transaction 317e3f... made it on-chain yet? How many confirmations does it have?"
 - "Does this wallet have open swap orders? Which DEX are they on?"
 - "How much SNEK would I get for 100 ADA, and which DEXes would the swap go through?"
 - "How are this wallet's ADA and tokens split across UTxOs? Does it have a pure-ADA UTxO for collateral?"
@@ -182,6 +183,7 @@ Once connected, ask your AI assistant questions like:
 | `get_wallet_balance` | Wallet balance — ADA, tokens, and portfolio value in any currency |
 | `get_wallet_utxos` | Wallet UTxOs — ADA and tokens per output, pure-ADA and collateral UTxOs |
 | `get_transaction_history` | Transaction history with amounts and directions |
+| `get_transaction_status` | Whether transactions are on-chain, with block, slot, and confirmations |
 | `get_swap_orders` | DEX swap orders — tokens, amounts, status, and the DEX of each split |
 | `get_swap_quote` | Swap quote — expected amount out, price impact, fees, and DEX split (quote only) |
 | `get_token_info` | Token price, market cap, and supply |
@@ -226,6 +228,17 @@ Covers every address of the wallet. UTxOs are sorted by ADA amount, largest firs
 |-----------|------|----------|-------------|
 | `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
 | `to_block` | number | No | Filter transactions up to this block height |
+
+</details>
+
+<details>
+<summary>get_transaction_status</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `tx_hashes` | string[] | Yes | Transaction hashes to check, 1-25 (64 hex characters; case doesn't matter) |
+
+For each hash: whether it is on-chain, its block height and slot, and its confirmations (blocks from its block to the tip, inclusive). Also returns the chain tip the answer holds for; a transaction that isn't on-chain is in no block up to that tip.
 
 </details>
 
