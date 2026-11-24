@@ -566,3 +566,140 @@ export const PoolInfoResponseSchema = z.object({
 });
 
 export type PoolInfoResponse = z.infer<typeof PoolInfoResponseSchema>;
+
+// ============================================================================
+// Swap Order Schemas (/v4/wallet/swap/history, /v4/wallet/swap/status)
+// ============================================================================
+
+/** A BigNumber (serialized as a string) or a plain number, kept as a decimal string. */
+const DecimalStringSchema = z.union([z.string(), z.number()]).transform((value) => String(value));
+
+/**
+ * Order and split statuses as returned by the backend.
+ * Unknown values are kept as-is so a new backend status doesn't fail the whole response.
+ */
+export const SwapOrderStatusSchema = z.string();
+
+export const SwapOrderSplitSchema = z.object({
+  amount_in: DecimalStringSchema,
+  dex: z.string(),
+  status: SwapOrderStatusSchema,
+  aggregator_fee: DecimalStringSchema,
+  paid_batcher_fee: DecimalStringSchema,
+  held_deposit: DecimalStringSchema,
+  submission_tx_output_index: z.number().int(),
+  expected_out_amount: DecimalStringSchema,
+  percentage_of_total_order: DecimalStringSchema,
+  update_info: z
+    .object({
+      update_tx_hash: z.string(),
+      last_update_time: z.string(),
+      actual_out_amount: DecimalStringSchema,
+    })
+    .nullish(),
+});
+
+export type SwapOrderSplit = z.infer<typeof SwapOrderSplitSchema>;
+
+const SwapOrderBaseSchema = z.object({
+  submission_time: z.string(), // ISO date-time
+  submission_tx_hash: z.string(),
+  token_in: z.string(), // asset unit, "416461" for ADA
+  token_out: z.string(), // asset unit, "416461" for ADA
+  status: SwapOrderStatusSchema, // aggregated across splits
+  amount_in: DecimalStringSchema, // decimals adjusted, total across splits
+  spent_amount_in: DecimalStringSchema,
+  expected_out_amount: DecimalStringSchema,
+  actual_out_amount: DecimalStringSchema,
+  aggregator_fee: DecimalStringSchema, // ADA
+  paid_batcher_fee: DecimalStringSchema, // ADA
+  held_deposit: DecimalStringSchema, // ADA
+});
+
+export const SwapOrderSchema = z.discriminatedUnion("runtime_type", [
+  SwapOrderBaseSchema.extend({
+    runtime_type: z.literal("split"),
+    splits: z.array(SwapOrderSplitSchema),
+  }),
+  SwapOrderBaseSchema.extend({
+    runtime_type: z.literal("single"),
+    dex: z.string(),
+    submission_tx_output_index: z.number().int(),
+    update_info: SwapOrderSplitSchema.shape.update_info,
+  }),
+]);
+
+export type SwapOrder = z.infer<typeof SwapOrderSchema>;
+
+/**
+ * Schema for the /v4/wallet/swap/history endpoint response.
+ * `next_page_cursor` is an ISO date-time; null or absent on the last page.
+ */
+export const SwapHistoryResponseSchema = z.object({
+  data: z.array(SwapOrderSchema),
+  next_page_cursor: z.string().nullish(),
+});
+
+export type SwapHistoryResponse = z.infer<typeof SwapHistoryResponseSchema>;
+
+/**
+ * Schema for the /v4/wallet/swap/status endpoint response. `data` is null when no order matches.
+ */
+export const SwapOrderStatusResponseSchema = z.object({
+  data: SwapOrderSchema.nullish(),
+});
+
+export type SwapOrderStatusResponse = z.infer<typeof SwapOrderStatusResponseSchema>;
+
+// ============================================================================
+// Swap Estimate Schemas (/v4/wallet/swap/estimate)
+// ============================================================================
+
+/** A bigint (serialized as a string) or a plain number, kept as an integer string. */
+const IntegerStringSchema = z.union([z.string(), z.number()]).transform((value) => String(value));
+
+/** A token side of a swap estimate. Quantities are decimals adjusted. */
+export const SwapEstimateTokenSchema = z.object({
+  policy: z.string(), // empty for ADA
+  hex_asset_name: z.string(),
+  quantity: DecimalStringSchema,
+  verified: z.boolean(),
+  decimals: z.number().int(),
+  name: z.string(),
+  ticker: z.string().nullish(),
+  value_fiat: DecimalStringSchema.nullish(),
+});
+
+export const SwapEstimateSplitSchema = z.object({
+  dex_name: z.string(),
+  fee_lovelace: IntegerStringSchema,
+  deposit_lovelace: IntegerStringSchema,
+  percentage_share: DecimalStringSchema, // fraction of the input amount, 0-1
+});
+
+export type SwapEstimateSplit = z.infer<typeof SwapEstimateSplitSchema>;
+
+/**
+ * Schema for the /v4/wallet/swap/estimate endpoint response. `POOL_NOT_FOUND` means no route exists for the pair.
+ * Impact and distortion are percentages; split fees and deposits are in lovelace.
+ */
+export const SwapEstimateResponseSchema = z.discriminatedUnion("runtime_type", [
+  z.object({
+    runtime_type: z.literal("DATA"),
+    token_in: SwapEstimateTokenSchema,
+    token_out: SwapEstimateTokenSchema,
+    token_out_min_quantity: DecimalStringSchema,
+    impact: DecimalStringSchema,
+    distortion: DecimalStringSchema,
+    quote_price_ab: DecimalStringSchema,
+    quote_price_ba: DecimalStringSchema,
+    aggregator_fee_lovelace: IntegerStringSchema,
+    order_splits: z.array(SwapEstimateSplitSchema),
+    currency: z.string(),
+  }),
+  z.object({
+    runtime_type: z.literal("POOL_NOT_FOUND"),
+  }),
+]);
+
+export type SwapEstimateResponse = z.infer<typeof SwapEstimateResponseSchema>;

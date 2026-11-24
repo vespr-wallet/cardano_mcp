@@ -15,6 +15,9 @@ import {
   AssetMetadataResponse,
   AssetSummaryResponse,
   PoolInfoResponse,
+  SwapHistoryResponse,
+  SwapOrderStatusResponse,
+  SwapEstimateResponse,
 } from "../types/api/schemas.js";
 import { CryptoCurrency, FiatCurrency, SupportedCurrency } from "../types/currency.js";
 
@@ -74,6 +77,30 @@ class VesprApiRepository {
 
   async getWalletUtxos(addressBech32: string): Promise<WalletUtxosResponse> {
     return this.client.fetchWalletUtxos(addressBech32);
+  }
+
+  async getSwapHistory(params: {
+    address: string;
+    openOnly: boolean;
+    assetUnit?: string;
+    pageCursor?: string;
+  }): Promise<SwapHistoryResponse> {
+    // No caching - open orders change as they fill
+    return this.client.fetchSwapHistory(params);
+  }
+
+  async getSwapOrderStatus(address: string, submissionTxHash: string): Promise<SwapOrderStatusResponse> {
+    return this.client.fetchSwapOrderStatus(address, submissionTxHash);
+  }
+
+  async getSwapEstimate(params: {
+    tokenInUnit: string;
+    tokenOutUnit: string;
+    amountIn: string;
+    currency: SupportedCurrency;
+  }): Promise<SwapEstimateResponse> {
+    // No caching - quotes move with every pool update
+    return this.client.fetchSwapEstimate(params);
   }
 
   async getTransactionHistory(address: string, toBlock?: number): Promise<TransactionHistoryResponse> {

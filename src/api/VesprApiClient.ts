@@ -14,6 +14,9 @@ import {
   AssetMetadataResponseSchema,
   AssetSummaryResponseSchema,
   PoolInfoResponseSchema,
+  SwapHistoryResponseSchema,
+  SwapOrderStatusResponseSchema,
+  SwapEstimateResponseSchema,
   type WalletDetailedResponse,
   type WalletUtxosResponse,
   type AdaSpotPriceResponse,
@@ -28,8 +31,11 @@ import {
   type AssetMetadataResponse,
   type AssetSummaryResponse,
   type PoolInfoResponse,
+  type SwapHistoryResponse,
+  type SwapOrderStatusResponse,
+  type SwapEstimateResponse,
 } from "../types/api/schemas.js";
-import { FiatCurrency, CryptoCurrency } from "../types/currency.js";
+import { FiatCurrency, CryptoCurrency, type SupportedCurrency } from "../types/currency.js";
 
 export class VesprApiClient {
   private getClient(): FetchApiClient {
@@ -66,6 +72,54 @@ export class VesprApiClient {
       body: { address },
       schema: WalletUtxosResponseSchema,
       context: `utxos(${address.slice(0, 15)}...)`,
+    });
+  }
+
+  async fetchSwapHistory(params: {
+    address: string;
+    openOnly: boolean;
+    assetUnit?: string;
+    pageCursor?: string;
+  }): Promise<SwapHistoryResponse> {
+    return this.getClient().post({
+      path: "/v4/wallet/swap/history",
+      body: {
+        address_bech_32: params.address,
+        open_only: params.openOnly,
+        asset_unit: params.assetUnit,
+        page_cursor: params.pageCursor,
+      },
+      schema: SwapHistoryResponseSchema,
+      context: `swapHistory(${params.address.slice(0, 15)}...)`,
+    });
+  }
+
+  async fetchSwapOrderStatus(address: string, submissionTxHash: string): Promise<SwapOrderStatusResponse> {
+    return this.getClient().post({
+      path: "/v4/wallet/swap/status",
+      body: { address_bech_32: address, submission_tx_hash: submissionTxHash },
+      schema: SwapOrderStatusResponseSchema,
+      context: `swapStatus(${submissionTxHash.slice(0, 12)}...)`,
+    });
+  }
+
+  async fetchSwapEstimate(params: {
+    tokenInUnit: string;
+    tokenOutUnit: string;
+    amountIn: string;
+    currency: SupportedCurrency;
+  }): Promise<SwapEstimateResponse> {
+    return this.getClient().post({
+      path: "/v4/wallet/swap/estimate",
+      body: {
+        token_in_unit: params.tokenInUnit,
+        token_out_unit: params.tokenOutUnit,
+        quantity_decimals_adjusted: params.amountIn,
+        type: "exact_in",
+        currency: params.currency,
+      },
+      schema: SwapEstimateResponseSchema,
+      context: `swapEstimate(${params.tokenInUnit.slice(0, 12)}->${params.tokenOutUnit.slice(0, 12)})`,
     });
   }
 

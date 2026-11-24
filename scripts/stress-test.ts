@@ -149,6 +149,10 @@ async function runIndividualTests(): Promise<TestResult[]> {
     ["get_ada_spot_price", () => VesprApiRepository.getAdaSpotPrice(FiatCurrency.USD)],
     ["get_wallet_balance", () => VesprApiRepository.getDetailedWallet(TEST_CONFIG.walletAddress)],
     ["get_wallet_utxos", () => VesprApiRepository.getWalletUtxos(TEST_CONFIG.walletAddress)],
+    [
+      "get_swap_orders",
+      () => VesprApiRepository.getSwapHistory({ address: TEST_CONFIG.walletAddress, openOnly: false }),
+    ],
   ];
 
   const results: TestResult[] = [];

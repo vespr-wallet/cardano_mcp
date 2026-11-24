@@ -81,3 +81,42 @@ export function isValidPoolId(poolId: unknown): boolean {
 
   return true;
 }
+
+/**
+ * The unit the VESPR backend uses for ADA (hex of "Ada").
+ */
+export const ADA_UNIT = "416461";
+
+/** Inputs accepted as ADA, compared case-insensitively. */
+const ADA_UNIT_ALIASES = new Set(["ada", "lovelace", ADA_UNIT]);
+
+/** Policy ID (56 hex chars), an optional "." separator, and a hex asset name of up to 32 bytes. */
+const ASSET_UNIT_REGEX = /^[0-9a-f]{56}\.?(?:[0-9a-f]{2}){0,32}$/;
+
+/**
+ * Normalizes a token unit for the VESPR backend: "ADA", "lovelace" and "416461" become {@link ADA_UNIT};
+ * any other unit must be a policy ID plus hex asset name (optionally separated by "."), returned lowercase
+ * without the separator.
+ *
+ * @returns the normalized unit, or null when the input isn't a valid unit
+ */
+export function normalizeAssetUnit(unit: string): string | null {
+  const trimmed = unit.trim().toLowerCase();
+  if (ADA_UNIT_ALIASES.has(trimmed)) {
+    return ADA_UNIT;
+  }
+  return ASSET_UNIT_REGEX.test(trimmed) ? trimmed.replace(".", "") : null;
+}
+
+/** A transaction hash: 64 hex characters. */
+const TX_HASH_REGEX = /^[0-9a-f]{64}$/;
+
+/**
+ * Normalizes a transaction hash to lowercase.
+ *
+ * @returns the lowercase hash, or null when the input isn't 64 hex characters
+ */
+export function normalizeTxHash(txHash: string): string | null {
+  const normalized = txHash.trim().toLowerCase();
+  return TX_HASH_REGEX.test(normalized) ? normalized : null;
+}

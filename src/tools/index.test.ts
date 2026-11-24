@@ -22,6 +22,8 @@ const ALL_TOOL_NAMES = [
   "get_pool_info",
   "get_staking_info",
   "get_supported_currencies",
+  "get_swap_orders",
+  "get_swap_quote",
   "get_token_chart",
   "get_token_info",
   "get_transaction_history",
@@ -143,6 +145,18 @@ describe("registerTools (MCP transport)", () => {
     expect(spy).toHaveBeenCalledWith("unit123", "1W", FiatCurrency.EUR);
   });
 
+  it("get_swap_quote accepts a numeric amount", async () => {
+    const spy = jest.spyOn(VesprApiRepository, "getSwapEstimate").mockResolvedValue({ runtime_type: "POOL_NOT_FOUND" });
+
+    const result = await client.callTool({
+      name: "get_swap_quote",
+      arguments: { token_in: "ADA", token_out: `${"ab".repeat(28)}01`, amount: 25 },
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ amountIn: "25", tokenInUnit: "416461" }));
+  });
+
   it("get_token_info defaults an empty currency to USD", async () => {
     const spy = jest.spyOn(VesprApiRepository, "getTokenInfo").mockResolvedValue(tokenInfoFixture);
 
@@ -252,6 +266,16 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_transaction_history", base: { address: VALID_ADDRESS }, field: "to_block", fallback: undefined },
     { tool: "get_wallet_utxos", base: { address: VALID_ADDRESS }, field: "limit", fallback: 50 },
     { tool: "get_wallet_utxos", base: { address: VALID_ADDRESS }, field: "offset", fallback: 0 },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "open_only", fallback: false },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "token_unit", fallback: undefined },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "cursor", fallback: undefined },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "submission_tx_hash", fallback: undefined },
+    {
+      tool: "get_swap_quote",
+      base: { token_in: "ADA", token_out: "u", amount: "1" },
+      field: "currency",
+      fallback: FiatCurrency.USD,
+    },
   ];
 
   it.each(defaultCases)(
@@ -275,6 +299,14 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_trending_tokens", base: {}, field: "currency", value: FiatCurrency.JPY },
     { tool: "get_trending_tokens", base: {}, field: "period", value: "4H" },
     { tool: "get_transaction_history", base: { address: VALID_ADDRESS }, field: "to_block", value: 12345 },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "open_only", value: true },
+    { tool: "get_swap_quote", base: { token_in: "ADA", token_out: "u" }, field: "amount", value: "12.5" },
+    {
+      tool: "get_swap_orders",
+      base: { address: VALID_ADDRESS },
+      field: "cursor",
+      value: "2026-10-30T12:00:00.000Z",
+    },
   ])("$tool.$field: keeps an explicit value", ({ tool, base, field, value }) => {
     expect(schemaOf(tool).parse({ ...base, [field]: value })[field]).toEqual(value);
   });
@@ -291,6 +323,11 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, limit: 0 } },
     { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, limit: 201 } },
     { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, offset: -1 } },
+    { tool: "get_swap_orders", args: {} },
+    { tool: "get_swap_quote", args: { token_in: "ADA", token_out: "u" } },
+    { tool: "get_swap_quote", args: { token_in: "ADA", token_out: "u", amount: "1", currency: "DOGE" } },
+    { tool: "get_swap_orders", args: { address: VALID_ADDRESS, open_only: "yes" } },
+    { tool: "get_swap_orders", args: { address: VALID_ADDRESS, cursor: "yesterday" } },
     { tool: "get_wallet_balance", args: { address: VALID_ADDRESS, currency: "INVALID" } },
     { tool: "get_token_info", args: { unit: "u", currency: "DOGE" } },
     { tool: "resolve_ada_handle", args: {} },

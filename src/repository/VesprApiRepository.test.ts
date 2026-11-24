@@ -109,6 +109,42 @@ describe("VesprApiRepository", () => {
     });
   });
 
+  describe("getSwapHistory", () => {
+    it("fetches swap orders from API", async () => {
+      const mockHistory = { data: [], next_page_cursor: null };
+      const spy = jest.spyOn(VesprApiClient.prototype, "fetchSwapHistory").mockResolvedValue(mockHistory);
+
+      const params = { address: "addr1test...", openOnly: false };
+      const result = await VesprApiRepository.getSwapHistory(params);
+      expect(result).toEqual(mockHistory);
+      expect(spy).toHaveBeenCalledWith(params);
+    });
+  });
+
+  describe("getSwapOrderStatus", () => {
+    it("fetches a single swap order from API", async () => {
+      const spy = jest.spyOn(VesprApiClient.prototype, "fetchSwapOrderStatus").mockResolvedValue({ data: null });
+
+      const result = await VesprApiRepository.getSwapOrderStatus("addr1test...", "ab".repeat(32));
+      expect(result).toEqual({ data: null });
+      expect(spy).toHaveBeenCalledWith("addr1test...", "ab".repeat(32));
+    });
+  });
+
+  describe("getSwapEstimate", () => {
+    it("fetches a swap estimate from API without caching", async () => {
+      const spy = jest
+        .spyOn(VesprApiClient.prototype, "fetchSwapEstimate")
+        .mockResolvedValue({ runtime_type: "POOL_NOT_FOUND" });
+
+      const params = { tokenInUnit: "416461", tokenOutUnit: "unit123", amountIn: "100", currency: FiatCurrency.USD };
+      await VesprApiRepository.getSwapEstimate(params);
+      await VesprApiRepository.getSwapEstimate(params);
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledWith(params);
+    });
+  });
+
   describe("getTransactionHistory", () => {
     it("fetches transaction history from API", async () => {
       const mockHistory: TransactionHistoryResponse = {

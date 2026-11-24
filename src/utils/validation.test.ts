@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { isValidCardanoAddress, isValidPoolId } from "./validation.js";
+import { ADA_UNIT, isValidCardanoAddress, isValidPoolId, normalizeAssetUnit, normalizeTxHash } from "./validation.js";
 
 describe("isValidCardanoAddress", () => {
   describe("valid addresses", () => {
@@ -99,5 +99,39 @@ describe("isValidPoolId", () => {
     it("handles whitespace-only input", () => {
       expect(isValidPoolId("   ")).toBe(false);
     });
+  });
+});
+
+describe("normalizeAssetUnit", () => {
+  const POLICY = "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f";
+
+  it.each(["ADA", "ada", "lovelace", "Lovelace", "416461", " ADA "])("maps %p to the ADA unit", (unit) => {
+    expect(normalizeAssetUnit(unit)).toBe(ADA_UNIT);
+  });
+
+  it("lowercases a unit and drops the policy separator", () => {
+    expect(normalizeAssetUnit(`${POLICY.toUpperCase()}.534E454B`)).toBe(`${POLICY}534e454b`);
+    expect(normalizeAssetUnit(`${POLICY}534e454b`)).toBe(`${POLICY}534e454b`);
+  });
+
+  it("accepts a policy ID without an asset name", () => {
+    expect(normalizeAssetUnit(POLICY)).toBe(POLICY);
+  });
+
+  it.each(["", "SNEK", `${POLICY}5`, `${POLICY}zz`, `${POLICY.slice(2)}`, `${POLICY}${"00".repeat(33)}`])(
+    "rejects %p",
+    (unit) => {
+      expect(normalizeAssetUnit(unit)).toBeNull();
+    },
+  );
+});
+
+describe("normalizeTxHash", () => {
+  it("lowercases a valid hash", () => {
+    expect(normalizeTxHash(` ${"AB".repeat(32)} `)).toBe("ab".repeat(32));
+  });
+
+  it.each(["", "ab".repeat(31), "zz".repeat(32), `${"ab".repeat(32)}00`])("rejects %p", (hash) => {
+    expect(normalizeTxHash(hash)).toBeNull();
   });
 });
