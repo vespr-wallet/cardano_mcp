@@ -17,6 +17,7 @@ import {
   SwapHistoryResponseSchema,
   SwapOrderStatusResponseSchema,
   SwapEstimateResponseSchema,
+  TxStatusResponseSchema,
   type WalletDetailedResponse,
   type WalletUtxosResponse,
   type AdaSpotPriceResponse,
@@ -34,6 +35,7 @@ import {
   type SwapHistoryResponse,
   type SwapOrderStatusResponse,
   type SwapEstimateResponse,
+  type TxStatusResponse,
 } from "../types/api/schemas.js";
 import { FiatCurrency, CryptoCurrency, type SupportedCurrency } from "../types/currency.js";
 
@@ -120,6 +122,15 @@ export class VesprApiClient {
       },
       schema: SwapEstimateResponseSchema,
       context: `swapEstimate(${params.tokenInUnit.slice(0, 12)}->${params.tokenOutUnit.slice(0, 12)})`,
+    });
+  }
+
+  async fetchTxStatus(txHashes: string[]): Promise<TxStatusResponse> {
+    return this.getClient().post({
+      path: "/v1/wallet/txstatus",
+      body: { tx_hashes: txHashes },
+      schema: TxStatusResponseSchema,
+      context: `txStatus(${txHashes.length} txs)`,
     });
   }
 

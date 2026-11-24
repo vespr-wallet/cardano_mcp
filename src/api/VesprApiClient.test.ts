@@ -134,6 +134,20 @@ describe("VesprApiClient", () => {
     });
   });
 
+  describe("fetchTxStatus", () => {
+    it("calls FetchApiClient.post with correct parameters", async () => {
+      const mockResponse = { tip: { slot: 1, height: 1 }, transactions: [] };
+      postSpy.mockResolvedValue(mockResponse);
+
+      const result = await client.fetchTxStatus(["ab".repeat(32)]);
+
+      expect(result).toEqual(mockResponse);
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ path: "/v1/wallet/txstatus", body: { tx_hashes: ["ab".repeat(32)] } }),
+      );
+    });
+  });
+
   describe("getAdaSpotPrice", () => {
     it("calls FetchApiClient.get with correct parameters", async () => {
       const mockResponse = {
