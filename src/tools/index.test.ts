@@ -22,6 +22,7 @@ const ALL_TOOL_NAMES = [
   "get_pool_info",
   "get_staking_info",
   "get_supported_currencies",
+  "get_swap_orders",
   "get_token_chart",
   "get_token_info",
   "get_transaction_history",
@@ -252,6 +253,10 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_transaction_history", base: { address: VALID_ADDRESS }, field: "to_block", fallback: undefined },
     { tool: "get_wallet_utxos", base: { address: VALID_ADDRESS }, field: "limit", fallback: 50 },
     { tool: "get_wallet_utxos", base: { address: VALID_ADDRESS }, field: "offset", fallback: 0 },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "open_only", fallback: false },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "token_unit", fallback: undefined },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "cursor", fallback: undefined },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "submission_tx_hash", fallback: undefined },
   ];
 
   it.each(defaultCases)(
@@ -275,6 +280,13 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_trending_tokens", base: {}, field: "currency", value: FiatCurrency.JPY },
     { tool: "get_trending_tokens", base: {}, field: "period", value: "4H" },
     { tool: "get_transaction_history", base: { address: VALID_ADDRESS }, field: "to_block", value: 12345 },
+    { tool: "get_swap_orders", base: { address: VALID_ADDRESS }, field: "open_only", value: true },
+    {
+      tool: "get_swap_orders",
+      base: { address: VALID_ADDRESS },
+      field: "cursor",
+      value: "2026-10-30T12:00:00.000Z",
+    },
   ])("$tool.$field: keeps an explicit value", ({ tool, base, field, value }) => {
     expect(schemaOf(tool).parse({ ...base, [field]: value })[field]).toEqual(value);
   });
@@ -291,6 +303,9 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, limit: 0 } },
     { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, limit: 201 } },
     { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, offset: -1 } },
+    { tool: "get_swap_orders", args: {} },
+    { tool: "get_swap_orders", args: { address: VALID_ADDRESS, open_only: "yes" } },
+    { tool: "get_swap_orders", args: { address: VALID_ADDRESS, cursor: "yesterday" } },
     { tool: "get_wallet_balance", args: { address: VALID_ADDRESS, currency: "INVALID" } },
     { tool: "get_token_info", args: { unit: "u", currency: "DOGE" } },
     { tool: "resolve_ada_handle", args: {} },

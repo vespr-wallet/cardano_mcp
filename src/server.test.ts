@@ -73,7 +73,7 @@ describe("server", () => {
       const mcpWithoutSession = await server.inject({ method: "GET", url: "/" });
 
       expect(tools.statusCode).toBe(200);
-      expect(tools.json()).toEqual(expect.objectContaining({ count: 12 }));
+      expect(tools.json()).toEqual(expect.objectContaining({ count: 13 }));
       expect(mcpWithoutSession.statusCode).toBe(404);
       expect(mcpWithoutSession.json()).toEqual({ error: "Invalid or expired session ID" });
     });

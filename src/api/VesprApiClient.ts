@@ -14,6 +14,8 @@ import {
   AssetMetadataResponseSchema,
   AssetSummaryResponseSchema,
   PoolInfoResponseSchema,
+  SwapHistoryResponseSchema,
+  SwapOrderStatusResponseSchema,
   type WalletDetailedResponse,
   type WalletUtxosResponse,
   type AdaSpotPriceResponse,
@@ -28,6 +30,8 @@ import {
   type AssetMetadataResponse,
   type AssetSummaryResponse,
   type PoolInfoResponse,
+  type SwapHistoryResponse,
+  type SwapOrderStatusResponse,
 } from "../types/api/schemas.js";
 import { FiatCurrency, CryptoCurrency } from "../types/currency.js";
 
@@ -66,6 +70,34 @@ export class VesprApiClient {
       body: { address },
       schema: WalletUtxosResponseSchema,
       context: `utxos(${address.slice(0, 15)}...)`,
+    });
+  }
+
+  async fetchSwapHistory(params: {
+    address: string;
+    openOnly: boolean;
+    assetUnit?: string;
+    pageCursor?: string;
+  }): Promise<SwapHistoryResponse> {
+    return this.getClient().post({
+      path: "/v4/wallet/swap/history",
+      body: {
+        address_bech_32: params.address,
+        open_only: params.openOnly,
+        asset_unit: params.assetUnit,
+        page_cursor: params.pageCursor,
+      },
+      schema: SwapHistoryResponseSchema,
+      context: `swapHistory(${params.address.slice(0, 15)}...)`,
+    });
+  }
+
+  async fetchSwapOrderStatus(address: string, submissionTxHash: string): Promise<SwapOrderStatusResponse> {
+    return this.getClient().post({
+      path: "/v4/wallet/swap/status",
+      body: { address_bech_32: address, submission_tx_hash: submissionTxHash },
+      schema: SwapOrderStatusResponseSchema,
+      context: `swapStatus(${submissionTxHash.slice(0, 12)}...)`,
     });
   }
 
