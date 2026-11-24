@@ -11,6 +11,12 @@ import { registerGetTokenInfo, getTokenInfoHandler } from "./get_token_info.js";
 import { registerGetTransactionHistory, getTransactionHistoryHandler } from "./get_transaction_history.js";
 import { registerGetTrendingTokens, getTrendingTokensHandler } from "./get_trending_tokens.js";
 import { registerGetWalletBalance, getWalletBalanceHandler } from "./get_wallet_balance.js";
+import {
+  registerGetWalletUtxos,
+  getWalletUtxosHandler,
+  getWalletUtxosInputSchema,
+  GET_WALLET_UTXOS_DESCRIPTION,
+} from "./get_wallet_utxos.js";
 import { registerResolveAdaHandle, resolveAdaHandleHandler } from "./resolve_ada_handle.js";
 import { SUPPORTED_CURRENCIES, FiatCurrency, CryptoCurrency } from "../types/currency.js";
 import { ChartPeriodSchema, TrendingPeriodSchema } from "../types/api/schemas.js";
@@ -21,6 +27,7 @@ import { ChartPeriodSchema, TrendingPeriodSchema } from "../types/api/schemas.js
 export function registerTools(server: McpServer): void {
   registerGetSupportedCurrencies(server);
   registerGetWalletBalance(server);
+  registerGetWalletUtxos(server);
   registerGetTransactionHistory(server);
   registerGetStakingInfo(server);
   registerGetTokenInfo(server);
@@ -61,6 +68,15 @@ export function registerHttpTools(): void {
         .describe("The currency to use for the displayed data"),
     }),
     handler: getWalletBalanceHandler,
+  });
+
+  // get_wallet_utxos
+  httpToolRegistry.registerTool({
+    name: "get_wallet_utxos",
+    title: "Get Wallet UTxOs",
+    description: GET_WALLET_UTXOS_DESCRIPTION,
+    inputSchema: z.object(getWalletUtxosInputSchema),
+    handler: getWalletUtxosHandler,
   });
 
   // get_transaction_history

@@ -44,6 +44,24 @@ describe("VesprApiClient", () => {
     });
   });
 
+  describe("fetchWalletUtxos", () => {
+    it("calls FetchApiClient.post with correct parameters", async () => {
+      const mockResponse = { hex_utxos: ["8282"], collateral_hex_utxos: [] };
+      postSpy.mockResolvedValue(mockResponse);
+
+      const result = await client.fetchWalletUtxos("addr1qtest123");
+
+      expect(result).toEqual(mockResponse);
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: "/v4/wallet/cip30/utxos",
+          body: { address: "addr1qtest123" },
+          context: expect.stringContaining("utxos"),
+        }),
+      );
+    });
+  });
+
   describe("getAdaSpotPrice", () => {
     it("calls FetchApiClient.get with correct parameters", async () => {
       const mockResponse = {

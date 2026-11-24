@@ -30,6 +30,17 @@ export const WalletDetailedResponseSchema = z.object({
 export type WalletDetailedResponse = z.infer<typeof WalletDetailedResponseSchema>;
 
 /**
+ * Schema for the /v4/wallet/cip30/utxos endpoint response.
+ * Each entry is a CBOR hex `TransactionUnspentOutput`; collateral entries are also in `hex_utxos`.
+ */
+export const WalletUtxosResponseSchema = z.object({
+  hex_utxos: z.array(z.string()),
+  collateral_hex_utxos: z.array(z.string()),
+});
+
+export type WalletUtxosResponse = z.infer<typeof WalletUtxosResponseSchema>;
+
+/**
  * Schema for the /v5/ada/spot endpoint response.
  */
 export const AdaSpotPriceResponseSchema = z.object({

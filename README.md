@@ -162,6 +162,7 @@ Once connected, ask your AI assistant questions like:
 
 - "What's the balance of addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv in USD?"
 - "Show me the transaction history for this wallet"
+- "How are this wallet's ADA and tokens split across UTxOs? Does it have a pure-ADA UTxO for collateral?"
 - "What's the price and market cap of SNEK token?"
 - "Show me the VESPR token price chart for the last week"
 - "What tokens are trending right now?"
@@ -177,6 +178,7 @@ Once connected, ask your AI assistant questions like:
 | Tool | Description |
 |------|-------------|
 | `get_wallet_balance` | Wallet balance — ADA, tokens, and portfolio value in any currency |
+| `get_wallet_utxos` | Wallet UTxOs — ADA and tokens per output, pure-ADA and collateral UTxOs |
 | `get_transaction_history` | Transaction history with amounts and directions |
 | `get_token_info` | Token price, market cap, and supply |
 | `get_token_chart` | OHLCV candlestick price data for any time period |
@@ -197,6 +199,19 @@ Once connected, ask your AI assistant questions like:
 |-----------|------|----------|-------------|
 | `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
 | `currency` | string | No | Currency for values (default: USD) |
+
+</details>
+
+<details>
+<summary>get_wallet_utxos</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
+| `limit` | number | No | UTxOs to return, 1-200 (default: 50) |
+| `offset` | number | No | UTxOs to skip, for pagination (default: 0) |
+
+Covers every address of the wallet. UTxOs are sorted by ADA amount, largest first. Summary fields (UTxO count, pure-ADA UTxO count, total ADA, largest pure-ADA UTxO, and the collateral UTxO VESPR would use: a pure-ADA UTxO of exactly 5 ADA) cover the whole wallet, not just the page. Each UTxO lists at most 50 tokens; `token_count` has the full count.
 
 </details>
 
