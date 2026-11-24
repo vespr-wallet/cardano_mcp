@@ -62,6 +62,50 @@ describe("VesprApiClient", () => {
     });
   });
 
+  describe("fetchSwapHistory", () => {
+    it("calls FetchApiClient.post with the backend body field names", async () => {
+      const mockResponse = { data: [], next_page_cursor: null };
+      postSpy.mockResolvedValue(mockResponse);
+
+      const result = await client.fetchSwapHistory({
+        address: "addr1qtest123",
+        openOnly: true,
+        assetUnit: "416461",
+        pageCursor: "2026-10-30T12:00:00.000Z",
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: "/v4/wallet/swap/history",
+          body: {
+            address_bech_32: "addr1qtest123",
+            open_only: true,
+            asset_unit: "416461",
+            page_cursor: "2026-10-30T12:00:00.000Z",
+          },
+        }),
+      );
+    });
+  });
+
+  describe("fetchSwapOrderStatus", () => {
+    it("calls FetchApiClient.post with correct parameters", async () => {
+      const mockResponse = { data: null };
+      postSpy.mockResolvedValue(mockResponse);
+
+      const result = await client.fetchSwapOrderStatus("addr1qtest123", "ab".repeat(32));
+
+      expect(result).toEqual(mockResponse);
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: "/v4/wallet/swap/status",
+          body: { address_bech_32: "addr1qtest123", submission_tx_hash: "ab".repeat(32) },
+        }),
+      );
+    });
+  });
+
   describe("getAdaSpotPrice", () => {
     it("calls FetchApiClient.get with correct parameters", async () => {
       const mockResponse = {

@@ -162,6 +162,7 @@ Once connected, ask your AI assistant questions like:
 
 - "What's the balance of addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv in USD?"
 - "Show me the transaction history for this wallet"
+- "Does this wallet have open swap orders? Which DEX are they on?"
 - "How are this wallet's ADA and tokens split across UTxOs? Does it have a pure-ADA UTxO for collateral?"
 - "What's the price and market cap of SNEK token?"
 - "Show me the VESPR token price chart for the last week"
@@ -180,6 +181,7 @@ Once connected, ask your AI assistant questions like:
 | `get_wallet_balance` | Wallet balance — ADA, tokens, and portfolio value in any currency |
 | `get_wallet_utxos` | Wallet UTxOs — ADA and tokens per output, pure-ADA and collateral UTxOs |
 | `get_transaction_history` | Transaction history with amounts and directions |
+| `get_swap_orders` | DEX swap orders — tokens, amounts, status, and the DEX of each split |
 | `get_token_info` | Token price, market cap, and supply |
 | `get_token_chart` | OHLCV candlestick price data for any time period |
 | `get_trending_tokens` | Trending tokens by volume, buys, or sells |
@@ -222,6 +224,21 @@ Covers every address of the wallet. UTxOs are sorted by ADA amount, largest firs
 |-----------|------|----------|-------------|
 | `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
 | `to_block` | number | No | Filter transactions up to this block height |
+
+</details>
+
+<details>
+<summary>get_swap_orders</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `address` | string | Yes | Cardano wallet address (bech32, addr1...) |
+| `open_only` | boolean | No | Only open orders: pending, partially filled, or being cancelled (default: false) |
+| `token_unit` | string | No | Only orders buying or selling this token (policy ID + hex asset name, or `ADA`) |
+| `cursor` | string | No | `next_cursor` from a previous call, for the next page |
+| `submission_tx_hash` | string | No | Hash of the transaction that placed an order, to look up just that order |
+
+Lists the wallet's DEX swap orders as tracked by DexHunter, the aggregator VESPR swaps through, newest first. Amounts are in display units (decimals applied); fees and deposits are in ADA. Each order lists its splits with the DEX, share, and status of each; a single-DEX order has one split.
 
 </details>
 

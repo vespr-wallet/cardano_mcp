@@ -17,6 +17,12 @@ import {
   getWalletUtxosInputSchema,
   GET_WALLET_UTXOS_DESCRIPTION,
 } from "./get_wallet_utxos.js";
+import {
+  registerGetSwapOrders,
+  getSwapOrdersHandler,
+  getSwapOrdersInputSchema,
+  GET_SWAP_ORDERS_DESCRIPTION,
+} from "./get_swap_orders.js";
 import { registerResolveAdaHandle, resolveAdaHandleHandler } from "./resolve_ada_handle.js";
 import { SUPPORTED_CURRENCIES, FiatCurrency, CryptoCurrency } from "../types/currency.js";
 import { ChartPeriodSchema, TrendingPeriodSchema } from "../types/api/schemas.js";
@@ -29,6 +35,7 @@ export function registerTools(server: McpServer): void {
   registerGetWalletBalance(server);
   registerGetWalletUtxos(server);
   registerGetTransactionHistory(server);
+  registerGetSwapOrders(server);
   registerGetStakingInfo(server);
   registerGetTokenInfo(server);
   registerGetTokenChart(server);
@@ -91,6 +98,15 @@ export function registerHttpTools(): void {
         .describe("Optional: filter transactions up to this block height"),
     }),
     handler: getTransactionHistoryHandler,
+  });
+
+  // get_swap_orders
+  httpToolRegistry.registerTool({
+    name: "get_swap_orders",
+    title: "Get Swap Orders",
+    description: GET_SWAP_ORDERS_DESCRIPTION,
+    inputSchema: z.object(getSwapOrdersInputSchema),
+    handler: getSwapOrdersHandler,
   });
 
   // get_staking_info
