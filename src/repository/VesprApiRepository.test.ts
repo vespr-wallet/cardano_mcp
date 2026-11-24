@@ -5,6 +5,7 @@ import { CryptoCurrency, FiatCurrency } from "../types/currency.js";
 import type {
   AdaSpotPriceResponse,
   WalletDetailedResponse,
+  WalletUtxosResponse,
   TransactionHistoryResponse,
   TokenInfoResponse,
   TokenChartResponse,
@@ -94,6 +95,17 @@ describe("VesprApiRepository", () => {
       const result = await VesprApiRepository.getDetailedWallet("addr1test...");
       expect(result).toEqual(mockWallet);
       expect(fetchWalletDetailedSpy).toHaveBeenCalledWith("addr1test...");
+    });
+  });
+
+  describe("getWalletUtxos", () => {
+    it("fetches wallet UTxOs from API", async () => {
+      const mockUtxos: WalletUtxosResponse = { hex_utxos: ["8282"], collateral_hex_utxos: [] };
+      const spy = jest.spyOn(VesprApiClient.prototype, "fetchWalletUtxos").mockResolvedValue(mockUtxos);
+
+      const result = await VesprApiRepository.getWalletUtxos("addr1test...");
+      expect(result).toEqual(mockUtxos);
+      expect(spy).toHaveBeenCalledWith("addr1test...");
     });
   });
 

@@ -74,7 +74,7 @@ describe("registerStreamableHttpRoutes", () => {
 
       expect(sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       const { tools } = await client.listTools();
-      expect(tools).toHaveLength(11);
+      expect(tools).toHaveLength(12);
       expect(tools.map((t) => t.name)).toContain("get_wallet_balance");
     });
 
@@ -276,7 +276,7 @@ describe("registerStreamableHttpRoutes", () => {
       jest.advanceTimersByTime(SESSION_CLEANUP_INTERVAL_MS);
 
       const { tools } = await client.listTools();
-      expect(tools).toHaveLength(11);
+      expect(tools).toHaveLength(12);
     });
 
     it("stops the cleanup timer when the server closes", async () => {

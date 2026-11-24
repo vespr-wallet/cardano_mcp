@@ -7,6 +7,7 @@ import {
   ChartPeriod,
   TransactionHistoryResponse,
   WalletDetailedResponse,
+  WalletUtxosResponse,
   TrendingTokensResponse,
   TrendingPeriod,
   StakingInfoResponse,
@@ -69,6 +70,10 @@ class VesprApiRepository {
 
   async getDetailedWallet(addressBech32: string): Promise<WalletDetailedResponse> {
     return this.client.fetchWalletDetailed(addressBech32);
+  }
+
+  async getWalletUtxos(addressBech32: string): Promise<WalletUtxosResponse> {
+    return this.client.fetchWalletUtxos(addressBech32);
   }
 
   async getTransactionHistory(address: string, toBlock?: number): Promise<TransactionHistoryResponse> {

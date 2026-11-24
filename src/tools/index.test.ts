@@ -27,6 +27,7 @@ const ALL_TOOL_NAMES = [
   "get_transaction_history",
   "get_trending_tokens",
   "get_wallet_balance",
+  "get_wallet_utxos",
   "resolve_ada_handle",
 ];
 
@@ -249,6 +250,8 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_trending_tokens", base: {}, field: "currency", fallback: FiatCurrency.USD },
     { tool: "get_trending_tokens", base: {}, field: "period", fallback: undefined },
     { tool: "get_transaction_history", base: { address: VALID_ADDRESS }, field: "to_block", fallback: undefined },
+    { tool: "get_wallet_utxos", base: { address: VALID_ADDRESS }, field: "limit", fallback: 50 },
+    { tool: "get_wallet_utxos", base: { address: VALID_ADDRESS }, field: "offset", fallback: 0 },
   ];
 
   it.each(defaultCases)(
@@ -284,6 +287,10 @@ describe("registerHttpTools (HTTP transport)", () => {
     { tool: "get_token_chart", args: { unit: "u", period: "2H" } },
     { tool: "get_transaction_history", args: { address: VALID_ADDRESS, to_block: -1 } },
     { tool: "get_wallet_balance", args: {} },
+    { tool: "get_wallet_utxos", args: {} },
+    { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, limit: 0 } },
+    { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, limit: 201 } },
+    { tool: "get_wallet_utxos", args: { address: VALID_ADDRESS, offset: -1 } },
     { tool: "get_wallet_balance", args: { address: VALID_ADDRESS, currency: "INVALID" } },
     { tool: "get_token_info", args: { unit: "u", currency: "DOGE" } },
     { tool: "resolve_ada_handle", args: {} },

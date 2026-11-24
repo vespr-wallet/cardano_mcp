@@ -3,6 +3,7 @@ import { FetchApiClient } from "../utils/api/FetchApiClient.js";
 import { getCurrentApiKey } from "../utils/apiKeyContext.js";
 import {
   WalletDetailedResponseSchema,
+  WalletUtxosResponseSchema,
   AdaSpotPriceResponseSchema,
   TransactionHistoryResponseSchema,
   StakingInfoResponseSchema,
@@ -14,6 +15,7 @@ import {
   AssetSummaryResponseSchema,
   PoolInfoResponseSchema,
   type WalletDetailedResponse,
+  type WalletUtxosResponse,
   type AdaSpotPriceResponse,
   type TransactionHistoryResponse,
   type StakingInfoResponse,
@@ -55,6 +57,15 @@ export class VesprApiClient {
       body: { address },
       schema: WalletDetailedResponseSchema,
       context: `wallet(${address.slice(0, 15)}...)`,
+    });
+  }
+
+  async fetchWalletUtxos(address: string): Promise<WalletUtxosResponse> {
+    return this.getClient().post({
+      path: "/v4/wallet/cip30/utxos",
+      body: { address },
+      schema: WalletUtxosResponseSchema,
+      context: `utxos(${address.slice(0, 15)}...)`,
     });
   }
 
