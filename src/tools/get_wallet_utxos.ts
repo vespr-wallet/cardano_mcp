@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { VesprApiError } from "../types/errors.js";
-import { lovelaceToAda, formatTokenAmount } from "../utils/cardano.js";
+import { lovelaceToAda, formatTokenAmount, readableAssetName } from "../utils/cardano.js";
 import { formatWithCommas } from "../utils/formatting.js";
 import { isValidCardanoAddress } from "../utils/validation.js";
 import { decodeUtxoCborHex, DecodedUtxo } from "../utils/utxo.js";
@@ -20,7 +20,9 @@ const utxoRefSchema = z.object({
 });
 
 const utxoTokenSchema = z.object({
-  name: z.string().describe("The name of the token (hex asset name when unknown)"),
+  name: z
+    .string()
+    .describe("The name of the token (the asset name as text, or hex when it isn't printable, for unknown tokens)"),
   ticker: z.string().nullish().describe("The ticker of the token"),
   policy_id: z.string().describe("The policy ID of the token"),
   asset_name_hex: z.string().describe("The hex-encoded asset name"),
@@ -128,7 +130,7 @@ export async function getWalletUtxosHandler({
           const info = tokenInfo.get(`${token.policy_id}${token.asset_name_hex}`);
           const quantity = token.quantity.toString();
           return {
-            name: info?.name || token.asset_name_hex,
+            name: info?.name || readableAssetName(token.asset_name_hex),
             ticker: info?.ticker,
             policy_id: token.policy_id,
             asset_name_hex: token.asset_name_hex,

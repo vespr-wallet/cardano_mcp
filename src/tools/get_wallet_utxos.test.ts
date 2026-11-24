@@ -198,7 +198,7 @@ describe("get_wallet_utxos tool", () => {
     expect(result.content[0]?.text).toContain("Largest pure-ADA UTxO: none");
   });
 
-  it("falls back to raw quantities when the token metadata lookup fails", async () => {
+  it("falls back to raw quantities and the decoded asset name when the token metadata lookup fails", async () => {
     getWalletUtxosSpy.mockResolvedValue({ hex_utxos: [UTXO_FIXTURES.withTokens], collateral_hex_utxos: [] });
     getDetailedWalletSpy.mockRejectedValue(new VesprApiError("Wallet lookup failed", 500));
 
@@ -206,7 +206,7 @@ describe("get_wallet_utxos tool", () => {
 
     expect(result.isError).toBeUndefined();
     expect(result.structuredContent?.utxos[0]?.tokens[0]).toEqual(
-      expect.objectContaining({ name: "484f534b59", quantity: "1234567", amount: "1234567" }),
+      expect.objectContaining({ name: "HOSKY", quantity: "1234567", amount: "1234567" }),
     );
   });
 
