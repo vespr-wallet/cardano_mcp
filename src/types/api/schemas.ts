@@ -650,3 +650,56 @@ export const SwapOrderStatusResponseSchema = z.object({
 });
 
 export type SwapOrderStatusResponse = z.infer<typeof SwapOrderStatusResponseSchema>;
+
+// ============================================================================
+// Swap Estimate Schemas (/v4/wallet/swap/estimate)
+// ============================================================================
+
+/** A bigint (serialized as a string) or a plain number, kept as an integer string. */
+const IntegerStringSchema = z.union([z.string(), z.number()]).transform((value) => String(value));
+
+/** A token side of a swap estimate. Quantities are decimals adjusted. */
+export const SwapEstimateTokenSchema = z.object({
+  policy: z.string(), // empty for ADA
+  hex_asset_name: z.string(),
+  quantity: DecimalStringSchema,
+  verified: z.boolean(),
+  decimals: z.number().int(),
+  name: z.string(),
+  ticker: z.string().nullish(),
+  value_fiat: DecimalStringSchema.nullish(),
+});
+
+export const SwapEstimateSplitSchema = z.object({
+  dex_name: z.string(),
+  fee_lovelace: IntegerStringSchema,
+  deposit_lovelace: IntegerStringSchema,
+  percentage_share: DecimalStringSchema, // fraction of the input amount, 0-1
+});
+
+export type SwapEstimateSplit = z.infer<typeof SwapEstimateSplitSchema>;
+
+/**
+ * Schema for the /v4/wallet/swap/estimate endpoint response. `POOL_NOT_FOUND` means no route exists for the pair.
+ * Impact and distortion are percentages; split fees and deposits are in lovelace.
+ */
+export const SwapEstimateResponseSchema = z.discriminatedUnion("runtime_type", [
+  z.object({
+    runtime_type: z.literal("DATA"),
+    token_in: SwapEstimateTokenSchema,
+    token_out: SwapEstimateTokenSchema,
+    token_out_min_quantity: DecimalStringSchema,
+    impact: DecimalStringSchema,
+    distortion: DecimalStringSchema,
+    quote_price_ab: DecimalStringSchema,
+    quote_price_ba: DecimalStringSchema,
+    aggregator_fee_lovelace: IntegerStringSchema,
+    order_splits: z.array(SwapEstimateSplitSchema),
+    currency: z.string(),
+  }),
+  z.object({
+    runtime_type: z.literal("POOL_NOT_FOUND"),
+  }),
+]);
+
+export type SwapEstimateResponse = z.infer<typeof SwapEstimateResponseSchema>;
