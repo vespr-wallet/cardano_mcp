@@ -29,6 +29,12 @@ import {
   getSwapQuoteInputSchema,
   GET_SWAP_QUOTE_DESCRIPTION,
 } from "./get_swap_quote.js";
+import {
+  registerGetTransactionStatus,
+  getTransactionStatusHandler,
+  getTransactionStatusInputSchema,
+  GET_TRANSACTION_STATUS_DESCRIPTION,
+} from "./get_transaction_status.js";
 import { registerResolveAdaHandle, resolveAdaHandleHandler } from "./resolve_ada_handle.js";
 import { SUPPORTED_CURRENCIES, FiatCurrency, CryptoCurrency } from "../types/currency.js";
 import { ChartPeriodSchema, TrendingPeriodSchema } from "../types/api/schemas.js";
@@ -41,6 +47,7 @@ export function registerTools(server: McpServer): void {
   registerGetWalletBalance(server);
   registerGetWalletUtxos(server);
   registerGetTransactionHistory(server);
+  registerGetTransactionStatus(server);
   registerGetSwapOrders(server);
   registerGetSwapQuote(server);
   registerGetStakingInfo(server);
@@ -105,6 +112,15 @@ export function registerHttpTools(): void {
         .describe("Optional: filter transactions up to this block height"),
     }),
     handler: getTransactionHistoryHandler,
+  });
+
+  // get_transaction_status
+  httpToolRegistry.registerTool({
+    name: "get_transaction_status",
+    title: "Get Transaction Status",
+    description: GET_TRANSACTION_STATUS_DESCRIPTION,
+    inputSchema: z.object(getTransactionStatusInputSchema),
+    handler: getTransactionStatusHandler,
   });
 
   // get_swap_orders

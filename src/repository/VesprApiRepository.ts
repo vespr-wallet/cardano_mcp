@@ -18,6 +18,7 @@ import {
   SwapHistoryResponse,
   SwapOrderStatusResponse,
   SwapEstimateResponse,
+  TxStatusResponse,
 } from "../types/api/schemas.js";
 import { CryptoCurrency, FiatCurrency, SupportedCurrency } from "../types/currency.js";
 
@@ -101,6 +102,11 @@ class VesprApiRepository {
   }): Promise<SwapEstimateResponse> {
     // No caching - quotes move with every pool update
     return this.client.fetchSwapEstimate(params);
+  }
+
+  async getTxStatus(txHashes: string[]): Promise<TxStatusResponse> {
+    // No caching - a transaction can land in the next block
+    return this.client.fetchTxStatus(txHashes);
   }
 
   async getTransactionHistory(address: string, toBlock?: number): Promise<TransactionHistoryResponse> {

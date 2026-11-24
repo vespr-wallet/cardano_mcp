@@ -703,3 +703,28 @@ export const SwapEstimateResponseSchema = z.discriminatedUnion("runtime_type", [
 ]);
 
 export type SwapEstimateResponse = z.infer<typeof SwapEstimateResponseSchema>;
+
+// ============================================================================
+// Transaction Status Schemas (/v1/wallet/txstatus)
+// ============================================================================
+
+const ChainPointSchema = z.object({
+  slot: z.number().int(),
+  height: z.number().int(),
+});
+
+/**
+ * Schema for the /v1/wallet/txstatus endpoint response.
+ * `block: null` means the transaction is in no block up to `tip.slot`.
+ */
+export const TxStatusResponseSchema = z.object({
+  tip: ChainPointSchema,
+  transactions: z.array(
+    z.object({
+      tx_hash: z.string(),
+      block: ChainPointSchema.nullable(),
+    }),
+  ),
+});
+
+export type TxStatusResponse = z.infer<typeof TxStatusResponseSchema>;

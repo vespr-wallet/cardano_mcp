@@ -145,6 +145,17 @@ describe("VesprApiRepository", () => {
     });
   });
 
+  describe("getTxStatus", () => {
+    it("fetches transaction status from API", async () => {
+      const mockStatus = { tip: { slot: 1, height: 1 }, transactions: [] };
+      const spy = jest.spyOn(VesprApiClient.prototype, "fetchTxStatus").mockResolvedValue(mockStatus);
+
+      const result = await VesprApiRepository.getTxStatus(["ab".repeat(32)]);
+      expect(result).toEqual(mockStatus);
+      expect(spy).toHaveBeenCalledWith(["ab".repeat(32)]);
+    });
+  });
+
   describe("getTransactionHistory", () => {
     it("fetches transaction history from API", async () => {
       const mockHistory: TransactionHistoryResponse = {
