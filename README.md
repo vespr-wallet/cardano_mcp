@@ -163,6 +163,7 @@ Once connected, ask your AI assistant questions like:
 - "What's the balance of addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv in USD?"
 - "Show me the transaction history for this wallet"
 - "Does this wallet have open swap orders? Which DEX are they on?"
+- "How much SNEK would I get for 100 ADA, and which DEXes would the swap go through?"
 - "How are this wallet's ADA and tokens split across UTxOs? Does it have a pure-ADA UTxO for collateral?"
 - "What's the price and market cap of SNEK token?"
 - "Show me the VESPR token price chart for the last week"
@@ -182,6 +183,7 @@ Once connected, ask your AI assistant questions like:
 | `get_wallet_utxos` | Wallet UTxOs — ADA and tokens per output, pure-ADA and collateral UTxOs |
 | `get_transaction_history` | Transaction history with amounts and directions |
 | `get_swap_orders` | DEX swap orders — tokens, amounts, status, and the DEX of each split |
+| `get_swap_quote` | Swap quote — expected amount out, price impact, fees, and DEX split (quote only) |
 | `get_token_info` | Token price, market cap, and supply |
 | `get_token_chart` | OHLCV candlestick price data for any time period |
 | `get_trending_tokens` | Trending tokens by volume, buys, or sells |
@@ -239,6 +241,20 @@ Covers every address of the wallet. UTxOs are sorted by ADA amount, largest firs
 | `submission_tx_hash` | string | No | Hash of the transaction that placed an order, to look up just that order |
 
 Lists the wallet's DEX swap orders as tracked by DexHunter, the aggregator VESPR swaps through, newest first. Amounts are in display units (decimals applied); fees and deposits are in ADA. Each order lists its splits with the DEX, share, and status of each; a single-DEX order has one split.
+
+</details>
+
+<details>
+<summary>get_swap_quote</summary>
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `token_in` | string | Yes | Token to sell: policy ID + hex asset name, or `ADA` |
+| `token_out` | string | Yes | Token to buy: policy ID + hex asset name, or `ADA` |
+| `amount` | string | Yes | Amount of `token_in` to sell, in display units (e.g. `100` for 100 ADA) |
+| `currency` | string | No | Currency for token values (default: USD) |
+
+Quotes an exact-in swap through DexHunter, the aggregator VESPR swaps through. Returns the expected and minimum (1% slippage) amount out, price, price impact (percent), batcher and aggregator fees and refundable deposits in ADA, and the DEX split with each DEX's share. Quote only: it never builds or submits a transaction and needs no wallet.
 
 </details>
 
