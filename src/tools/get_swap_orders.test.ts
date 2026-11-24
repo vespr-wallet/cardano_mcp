@@ -1,6 +1,6 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerGetSwapOrders, getSwapOrdersHandler, roundAmount } from "./get_swap_orders.js";
+import { registerGetSwapOrders, getSwapOrdersHandler } from "./get_swap_orders.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { VesprApiError } from "../types/errors.js";
 import { SwapHistoryResponseSchema, type AssetSummaryResponse } from "../types/api/schemas.js";
@@ -298,17 +298,6 @@ describe("get_swap_orders tool", () => {
 
     expect(result.structuredContent).toEqual({ orders: [], next_cursor: null });
     expect(result.content[0]?.text).toBe(`No swap order found for transaction ${OPEN_TX}.`);
-  });
-
-  it.each([
-    ["36.085547000000005", 6, "36.085547"],
-    ["4.086971999999999", 6, "4.086972"],
-    ["37418079.4", 0, "37418079"],
-    ["2.5", 6, "2.5"],
-    ["1.000000001", 6, "1"],
-    ["36.085547000000005", null, "36.085547000000005"],
-  ])("roundAmount(%s, %s) is %s", (value, decimals, expected) => {
-    expect(roundAmount(value, decimals)).toBe(expected);
   });
 
   it("rounds float noise in amounts to each token's decimals", async () => {

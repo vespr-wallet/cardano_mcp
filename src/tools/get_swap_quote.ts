@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { VesprApiError } from "../types/errors.js";
 import { lovelaceToAda } from "../utils/cardano.js";
-import { formatWithCommas } from "../utils/formatting.js";
+import { formatWithCommas, roundAmount } from "../utils/formatting.js";
 import { normalizeAssetUnit } from "../utils/validation.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { FiatCurrency, SUPPORTED_CURRENCIES, type SupportedCurrency } from "../types/currency.js";
@@ -48,6 +48,11 @@ const swapQuoteOutputSchema = z.object({
 });
 
 type SwapQuoteOutput = z.infer<typeof swapQuoteOutputSchema>;
+
+/** Lovelace as ADA with trailing zeros dropped, e.g. "5000000" -> "5". */
+function toAda(lovelace: string): string {
+  return roundAmount(lovelaceToAda(lovelace), 6);
+}
 
 function errorResult(message: string): { content: Array<{ type: "text"; text: string }>; isError: true } {
   return { content: [{ type: "text" as const, text: `Error: ${message}` }], isError: true };
@@ -112,7 +117,7 @@ export async function getSwapQuoteHandler({
     }
 
     const sumLovelace = (pick: (split: SwapEstimateSplit) => string) =>
-      lovelaceToAda(response.order_splits.reduce((acc, split) => acc + BigInt(pick(split)), 0n).toString());
+      toAda(response.order_splits.reduce((acc, split) => acc + BigInt(pick(split)), 0n).toString());
 
     const quote = {
       token_in: {
@@ -137,13 +142,13 @@ export async function getSwapQuoteHandler({
       price_impact_percent: response.impact,
       batcher_fee_ada: sumLovelace((split) => split.fee_lovelace),
       deposit_ada: sumLovelace((split) => split.deposit_lovelace),
-      aggregator_fee_ada: lovelaceToAda(response.aggregator_fee_lovelace),
+      aggregator_fee_ada: toAda(response.aggregator_fee_lovelace),
       currency: response.currency,
       route: response.order_splits.map((split) => ({
         dex: split.dex_name,
         share_percent: toPercent(split.percentage_share),
-        batcher_fee_ada: lovelaceToAda(split.fee_lovelace),
-        deposit_ada: lovelaceToAda(split.deposit_lovelace),
+        batcher_fee_ada: toAda(split.fee_lovelace),
+        deposit_ada: toAda(split.deposit_lovelace),
       })),
     };
 

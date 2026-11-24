@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { VesprApiError } from "../types/errors.js";
 import { formatWithCommas } from "../utils/formatting.js";
+import { roundAmount } from "../utils/formatting.js";
 import { ADA_UNIT, isValidCardanoAddress, normalizeAssetUnit, normalizeTxHash } from "../utils/validation.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import type { SwapOrder } from "../types/api/schemas.js";
@@ -106,19 +107,6 @@ async function lookupTokens(units: string[]): Promise<Map<string, TokenMeta>> {
     tokens.set(`${nft.policy}${nft.hex_asset_name}`, { name: nft.name, ticker: null, decimals: 0 });
   }
   return tokens;
-}
-
-/**
- * Rounds a backend amount to the token's decimals and drops trailing zeros. DexHunter amounts are floats, so they can
- * carry noise such as "36.085547000000005". Amounts of tokens with unknown decimals are kept as-is.
- */
-export function roundAmount(value: string, decimals: number | null): string {
-  const number = Number(value);
-  if (decimals === null || !Number.isFinite(number)) {
-    return value;
-  }
-  const fixed = number.toFixed(decimals);
-  return fixed.includes(".") ? fixed.replace(/\.?0+$/, "") : fixed;
 }
 
 function toOrderOutput(order: SwapOrder, tokens: Map<string, TokenMeta>): SwapOrderOutput {
