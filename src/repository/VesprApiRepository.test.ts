@@ -131,6 +131,20 @@ describe("VesprApiRepository", () => {
     });
   });
 
+  describe("getSwapEstimate", () => {
+    it("fetches a swap estimate from API without caching", async () => {
+      const spy = jest
+        .spyOn(VesprApiClient.prototype, "fetchSwapEstimate")
+        .mockResolvedValue({ runtime_type: "POOL_NOT_FOUND" });
+
+      const params = { tokenInUnit: "416461", tokenOutUnit: "unit123", amountIn: "100", currency: FiatCurrency.USD };
+      await VesprApiRepository.getSwapEstimate(params);
+      await VesprApiRepository.getSwapEstimate(params);
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledWith(params);
+    });
+  });
+
   describe("getTransactionHistory", () => {
     it("fetches transaction history from API", async () => {
       const mockHistory: TransactionHistoryResponse = {

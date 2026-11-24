@@ -16,6 +16,7 @@ import {
   PoolInfoResponseSchema,
   SwapHistoryResponseSchema,
   SwapOrderStatusResponseSchema,
+  SwapEstimateResponseSchema,
   type WalletDetailedResponse,
   type WalletUtxosResponse,
   type AdaSpotPriceResponse,
@@ -32,8 +33,9 @@ import {
   type PoolInfoResponse,
   type SwapHistoryResponse,
   type SwapOrderStatusResponse,
+  type SwapEstimateResponse,
 } from "../types/api/schemas.js";
-import { FiatCurrency, CryptoCurrency } from "../types/currency.js";
+import { FiatCurrency, CryptoCurrency, type SupportedCurrency } from "../types/currency.js";
 
 export class VesprApiClient {
   private getClient(): FetchApiClient {
@@ -98,6 +100,26 @@ export class VesprApiClient {
       body: { address_bech_32: address, submission_tx_hash: submissionTxHash },
       schema: SwapOrderStatusResponseSchema,
       context: `swapStatus(${submissionTxHash.slice(0, 12)}...)`,
+    });
+  }
+
+  async fetchSwapEstimate(params: {
+    tokenInUnit: string;
+    tokenOutUnit: string;
+    amountIn: string;
+    currency: SupportedCurrency;
+  }): Promise<SwapEstimateResponse> {
+    return this.getClient().post({
+      path: "/v4/wallet/swap/estimate",
+      body: {
+        token_in_unit: params.tokenInUnit,
+        token_out_unit: params.tokenOutUnit,
+        quantity_decimals_adjusted: params.amountIn,
+        type: "exact_in",
+        currency: params.currency,
+      },
+      schema: SwapEstimateResponseSchema,
+      context: `swapEstimate(${params.tokenInUnit.slice(0, 12)}->${params.tokenOutUnit.slice(0, 12)})`,
     });
   }
 

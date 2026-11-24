@@ -106,6 +106,34 @@ describe("VesprApiClient", () => {
     });
   });
 
+  describe("fetchSwapEstimate", () => {
+    it("asks for an exact-in estimate with the backend body field names", async () => {
+      const mockResponse = { runtime_type: "POOL_NOT_FOUND" };
+      postSpy.mockResolvedValue(mockResponse);
+
+      const result = await client.fetchSwapEstimate({
+        tokenInUnit: "416461",
+        tokenOutUnit: "unit123",
+        amountIn: "100",
+        currency: FiatCurrency.USD,
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: "/v4/wallet/swap/estimate",
+          body: {
+            token_in_unit: "416461",
+            token_out_unit: "unit123",
+            quantity_decimals_adjusted: "100",
+            type: "exact_in",
+            currency: FiatCurrency.USD,
+          },
+        }),
+      );
+    });
+  });
+
   describe("getAdaSpotPrice", () => {
     it("calls FetchApiClient.get with correct parameters", async () => {
       const mockResponse = {
