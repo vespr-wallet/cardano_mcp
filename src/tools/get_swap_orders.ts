@@ -75,34 +75,65 @@ function toPercent(fraction: string): string {
   return String(Math.round(Number(fraction) * 10_000) / 100);
 }
 
+/** What a token lookup knows about a unit. `decimals` is null when unknown. */
+interface TokenMeta {
+  name: string;
+  ticker: string | null;
+  decimals: number | null;
+}
+
+const ADA_DECIMALS = 6;
+
 /**
- * Looks up token names for the given units. Names are a nice-to-have: when the lookup fails, units are shown as-is.
+ * Looks up token names and decimals for the given units. They are a nice-to-have: when the lookup fails, units are
+ * shown as names and amounts as the backend sent them.
  */
-async function lookupTokens(units: string[]): Promise<Map<string, { name: string; ticker: string | null }>> {
-  const tokens = new Map<string, { name: string; ticker: string | null }>([[ADA_UNIT, { name: "ADA", ticker: "ADA" }]]);
+async function lookupTokens(units: string[]): Promise<Map<string, TokenMeta>> {
+  const tokens = new Map<string, TokenMeta>([[ADA_UNIT, { name: "ADA", ticker: "ADA", decimals: ADA_DECIMALS }]]);
   const toLookup = [...new Set(units)].filter((unit) => unit !== ADA_UNIT).slice(0, MAX_NAME_LOOKUP_UNITS);
   if (toLookup.length === 0) {
     return tokens;
   }
   const summary = await VesprApiRepository.getAssetSummary(toLookup).catch(() => null);
   for (const token of summary?.tokens ?? []) {
-    tokens.set(`${token.policy}${token.hex_asset_name}`, { name: token.name, ticker: token.ticker ?? null });
+    tokens.set(`${token.policy}${token.hex_asset_name}`, {
+      name: token.name,
+      ticker: token.ticker ?? null,
+      decimals: token.decimals,
+    });
   }
   for (const nft of [...(summary?.nfts ?? []), ...(summary?.other_nfts ?? [])]) {
-    tokens.set(`${nft.policy}${nft.hex_asset_name}`, { name: nft.name, ticker: null });
+    tokens.set(`${nft.policy}${nft.hex_asset_name}`, { name: nft.name, ticker: null, decimals: 0 });
   }
   return tokens;
 }
 
-function toOrderOutput(
-  order: SwapOrder,
-  tokens: Map<string, { name: string; ticker: string | null }>,
-): SwapOrderOutput {
+/**
+ * Rounds a backend amount to the token's decimals and drops trailing zeros. DexHunter amounts are floats, so they can
+ * carry noise such as "36.085547000000005". Amounts of tokens with unknown decimals are kept as-is.
+ */
+export function roundAmount(value: string, decimals: number | null): string {
+  const number = Number(value);
+  if (decimals === null || !Number.isFinite(number)) {
+    return value;
+  }
+  const fixed = number.toFixed(decimals);
+  return fixed.includes(".") ? fixed.replace(/\.?0+$/, "") : fixed;
+}
+
+function toOrderOutput(order: SwapOrder, tokens: Map<string, TokenMeta>): SwapOrderOutput {
   const tokenOf = (unit: string): SwapToken => ({
     unit,
     name: tokens.get(unit)?.name ?? unit,
     ticker: tokens.get(unit)?.ticker ?? null,
   });
+  const decimalsIn = tokens.get(order.token_in)?.decimals ?? null;
+  const decimalsOut = tokens.get(order.token_out)?.decimals ?? null;
+  const amountIn = (value: string) => roundAmount(value, decimalsIn);
+  const amountOut = (value: string) => roundAmount(value, decimalsOut);
+  const ada = (value: string) => roundAmount(value, ADA_DECIMALS);
+  const actualOut = (updateInfo: { actual_out_amount: string } | null | undefined) =>
+    updateInfo ? amountOut(updateInfo.actual_out_amount) : null;
 
   const splits: SwapSplit[] =
     order.runtime_type === "split"
@@ -110,9 +141,9 @@ function toOrderOutput(
           dex: split.dex,
           status: split.status,
           share_percent: toPercent(split.percentage_of_total_order),
-          amount_in: split.amount_in,
-          expected_amount_out: split.expected_out_amount,
-          actual_amount_out: split.update_info?.actual_out_amount ?? null,
+          amount_in: amountIn(split.amount_in),
+          expected_amount_out: amountOut(split.expected_out_amount),
+          actual_amount_out: actualOut(split.update_info),
           output_index: split.submission_tx_output_index,
         }))
       : [
@@ -120,9 +151,9 @@ function toOrderOutput(
             dex: order.dex,
             status: order.status,
             share_percent: "100",
-            amount_in: order.amount_in,
-            expected_amount_out: order.expected_out_amount,
-            actual_amount_out: order.update_info?.actual_out_amount ?? null,
+            amount_in: amountIn(order.amount_in),
+            expected_amount_out: amountOut(order.expected_out_amount),
+            actual_amount_out: actualOut(order.update_info),
             output_index: order.submission_tx_output_index,
           },
         ];
@@ -134,13 +165,13 @@ function toOrderOutput(
     is_open: OPEN_ORDER_STATUSES.has(order.status),
     token_in: tokenOf(order.token_in),
     token_out: tokenOf(order.token_out),
-    amount_in: order.amount_in,
-    spent_amount_in: order.spent_amount_in,
-    expected_amount_out: order.expected_out_amount,
-    actual_amount_out: order.actual_out_amount,
-    aggregator_fee_ada: order.aggregator_fee,
-    batcher_fee_ada: order.paid_batcher_fee,
-    held_deposit_ada: order.held_deposit,
+    amount_in: amountIn(order.amount_in),
+    spent_amount_in: amountIn(order.spent_amount_in),
+    expected_amount_out: amountOut(order.expected_out_amount),
+    actual_amount_out: amountOut(order.actual_out_amount),
+    aggregator_fee_ada: ada(order.aggregator_fee),
+    batcher_fee_ada: ada(order.paid_batcher_fee),
+    held_deposit_ada: ada(order.held_deposit),
     dexes: [...new Set(splits.map((split) => split.dex))],
     splits,
   };
