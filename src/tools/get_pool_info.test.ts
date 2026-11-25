@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetPoolInfo, getPoolInfoHandler } from "./get_pool_info.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { PoolInfoResponse } from "../types/api/schemas.js";
 
 describe("get_pool_info tool", () => {
@@ -38,6 +38,7 @@ describe("get_pool_info tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid pool ID. Pool IDs must start with 'pool1' prefix." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getPoolInfoSpy).not.toHaveBeenCalled();
@@ -49,6 +50,7 @@ describe("get_pool_info tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid pool ID. Pool IDs must start with 'pool1' prefix." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getPoolInfoSpy).not.toHaveBeenCalled();
@@ -62,6 +64,7 @@ describe("get_pool_info tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid pool ID. Pool IDs must start with 'pool1' prefix." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getPoolInfoSpy).not.toHaveBeenCalled();
@@ -73,6 +76,7 @@ describe("get_pool_info tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid pool ID. Pool IDs must start with 'pool1' prefix." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getPoolInfoSpy).not.toHaveBeenCalled();

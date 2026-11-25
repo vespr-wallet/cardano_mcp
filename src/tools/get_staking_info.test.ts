@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetStakingInfo, getStakingInfoHandler } from "./get_staking_info.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import {
   StakePoolInfoSchema,
   StakingInfoResponseSchema,
@@ -74,6 +74,7 @@ describe("get_staking_info tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid Cardano address." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       // Should not call the API
@@ -86,6 +87,7 @@ describe("get_staking_info tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid Cardano address." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getStakingInfoSpy).not.toHaveBeenCalled();

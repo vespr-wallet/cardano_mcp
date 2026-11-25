@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetAssetMetadata, getAssetMetadataHandler } from "./get_asset_metadata.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { AssetMetadataResponse } from "../types/api/schemas.js";
 
 describe("get_asset_metadata tool", () => {
@@ -38,6 +38,7 @@ describe("get_asset_metadata tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Asset unit cannot be empty." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getAssetMetadataSpy).not.toHaveBeenCalled();
@@ -49,6 +50,7 @@ describe("get_asset_metadata tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Asset unit cannot be empty." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getAssetMetadataSpy).not.toHaveBeenCalled();

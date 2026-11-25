@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetTransactionStatus, getTransactionStatusHandler, MAX_TX_HASHES } from "./get_transaction_status.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import { TxStatusResponseSchema } from "../types/api/schemas.js";
 
 const ON_CHAIN_TX = "317e3fb837".padEnd(64, "a");
@@ -49,6 +49,7 @@ describe("get_transaction_status tool", () => {
     expect(result).toEqual({
       content: [{ type: "text", text: 'Error: Invalid transaction hash "317e3f". It should be 64 hex characters.' }],
       isError: true,
+      [INVALID_INPUT]: true,
     });
     expect(statusSpy).not.toHaveBeenCalled();
   });

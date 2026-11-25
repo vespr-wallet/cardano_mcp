@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetTransactionHistory, getTransactionHistoryHandler } from "./get_transaction_history.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { TransactionHistoryResponse } from "../types/api/schemas.js";
 
 describe("get_transaction_history tool", () => {
@@ -38,6 +38,7 @@ describe("get_transaction_history tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid Cardano address." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       // Should not call the API
@@ -50,6 +51,7 @@ describe("get_transaction_history tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Invalid Cardano address." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getTransactionHistorySpy).not.toHaveBeenCalled();

@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetAssetSummary, getAssetSummaryHandler } from "./get_asset_summary.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { AssetSummaryResponse } from "../types/api/schemas.js";
 
 describe("get_asset_summary tool", () => {
@@ -38,6 +38,7 @@ describe("get_asset_summary tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Units array cannot be empty." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getAssetSummarySpy).not.toHaveBeenCalled();
@@ -49,6 +50,7 @@ describe("get_asset_summary tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: All provided units are empty or whitespace." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getAssetSummarySpy).not.toHaveBeenCalled();
@@ -62,6 +64,7 @@ describe("get_asset_summary tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Maximum 100 assets allowed per request. Received 101." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getAssetSummarySpy).not.toHaveBeenCalled();

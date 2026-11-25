@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import { lovelaceToAda } from "../utils/cardano.js";
 import { isValidCardanoAddress } from "../utils/validation.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
@@ -218,10 +218,7 @@ export async function getStakingInfoHandler({ address }: { address: string }): P
 
   // Validate address
   if (!isValidCardanoAddress(trimmedAddress)) {
-    return {
-      content: [{ type: "text" as const, text: "Error: Invalid Cardano address." }],
-      isError: true,
-    };
+    return invalidInputResult("Invalid Cardano address.");
   }
 
   try {

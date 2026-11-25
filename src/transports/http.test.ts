@@ -3,6 +3,7 @@ import Fastify, { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { HttpToolRegistry, httpToolRegistry, registerHttpRoutes, HttpToolResult } from "./http.js";
 import { getCurrentApiKey } from "../utils/apiKeyContext.js";
+import { invalidInputResult } from "../types/errors.js";
 
 // Mock logger to avoid console output during tests
 jest.mock("../utils/logger.js", () => ({
@@ -461,6 +462,30 @@ describe("registerHttpRoutes over a real Fastify instance", () => {
     expect(response.statusCode).toBe(502);
     expect(response.json()).toEqual({
       error: { code: "TOOL_ERROR", message: "Error: upstream down\nTry again later" },
+    });
+  });
+
+  it("maps a tool result flagged as invalid input to 422 INVALID_INPUT", async () => {
+    httpToolRegistry.registerTool({
+      name: "picky_tool",
+      title: "Picky",
+      description: "Rejects its input",
+      inputSchema: z.object({}),
+      handler: () => Promise.resolve(invalidInputResult("Invalid Cardano address.")),
+    });
+
+    const response = await server.inject({ method: "POST", url: "/tools/picky_tool", payload: {} });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json()).toEqual({
+      error: { code: "INVALID_INPUT", message: "Error: Invalid Cardano address." },
+    });
+  });
+
+  it("keeps the invalid-input flag out of the JSON MCP clients receive", () => {
+    expect(JSON.parse(JSON.stringify(invalidInputResult("Bad hash.")))).toEqual({
+      content: [{ type: "text", text: "Error: Bad hash." }],
+      isError: true,
     });
   });
 

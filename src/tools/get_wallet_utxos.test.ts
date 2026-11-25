@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetWalletUtxos, getWalletUtxosHandler, MAX_TOKENS_PER_UTXO } from "./get_wallet_utxos.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { WalletDetailedResponse, WalletUtxosResponse } from "../types/api/schemas.js";
 import { UTXO_FIXTURES, FIXTURE_ADDRESS, HOSKY_POLICY, HANDLE_POLICY } from "../utils/utxo.fixtures.js";
 
@@ -65,6 +65,7 @@ describe("get_wallet_utxos tool", () => {
         },
       ],
       isError: true,
+      [INVALID_INPUT]: true,
     });
     expect(getWalletUtxosSpy).not.toHaveBeenCalled();
     expect(getDetailedWalletSpy).not.toHaveBeenCalled();

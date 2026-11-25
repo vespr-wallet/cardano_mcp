@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import { lovelaceToAda } from "../utils/cardano.js";
 import { isValidPoolId } from "../utils/validation.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
@@ -130,10 +130,7 @@ export async function getPoolInfoHandler({ pool_id, poolId }: { pool_id?: string
 
   // Validate pool ID
   if (!effectivePoolId || !isValidPoolId(effectivePoolId)) {
-    return {
-      content: [{ type: "text" as const, text: "Error: Invalid pool ID. Pool IDs must start with 'pool1' prefix." }],
-      isError: true,
-    };
+    return invalidInputResult("Invalid pool ID. Pool IDs must start with 'pool1' prefix.");
   }
 
   try {

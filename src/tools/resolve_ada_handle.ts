@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 
 // Output schema
@@ -20,10 +20,7 @@ export async function resolveAdaHandleHandler({ handle }: { handle: string }): P
 }> {
   // Validate input
   if (!handle || handle.trim() === "" || handle === "$") {
-    return {
-      content: [{ type: "text" as const, text: "Error: Handle cannot be empty." }],
-      isError: true,
-    };
+    return invalidInputResult("Handle cannot be empty.");
   }
 
   try {

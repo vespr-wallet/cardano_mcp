@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import { formatWithCommas } from "../utils/formatting.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import { FiatCurrency, SupportedCurrency, SUPPORTED_CURRENCIES } from "../types/currency.js";
@@ -49,10 +49,7 @@ export async function getTokenInfoHandler({
 }> {
   // Validate unit is not empty
   if (!unit || unit.trim() === "") {
-    return {
-      content: [{ type: "text" as const, text: "Error: Token unit identifier is required." }],
-      isError: true,
-    };
+    return invalidInputResult("Token unit identifier is required.");
   }
 
   try {

@@ -52,3 +52,18 @@ export function getFallbackErrorMessage(statusCode: number): string {
       return `Request failed (status ${statusCode}).`;
   }
 }
+
+/**
+ * Marks a tool result that rejected its input. It is a symbol key, so JSON drops it and MCP clients never see it; the
+ * REST route reads it to answer 422 instead of 502.
+ */
+export const INVALID_INPUT = Symbol("invalidInput");
+
+/** A tool error for bad input (address, hash, unit, amount...), as opposed to a backend failure. */
+export function invalidInputResult(message: string): {
+  content: Array<{ type: "text"; text: string }>;
+  isError: true;
+  [INVALID_INPUT]: true;
+} {
+  return { content: [{ type: "text" as const, text: `Error: ${message}` }], isError: true, [INVALID_INPUT]: true };
+}

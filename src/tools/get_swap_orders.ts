@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import { formatWithCommas } from "../utils/formatting.js";
 import { roundAmount } from "../utils/formatting.js";
 import { ADA_UNIT, isValidCardanoAddress, normalizeAssetUnit, normalizeTxHash } from "../utils/validation.js";
@@ -201,14 +201,14 @@ export async function getSwapOrdersHandler({
   isError?: boolean;
 }> {
   if (!isValidCardanoAddress(address)) {
-    return errorResult("Invalid Cardano address. Address should be a valid bech32 Shelley Era Wallet address.");
+    return invalidInputResult("Invalid Cardano address. Address should be a valid bech32 Shelley Era Wallet address.");
   }
 
   let assetUnit: string | undefined;
   if (token_unit !== undefined) {
     const normalized = normalizeAssetUnit(token_unit);
     if (normalized === null) {
-      return errorResult(
+      return invalidInputResult(
         'Invalid token unit. Use the policy ID followed by the hex asset name, or "ADA" / "lovelace" for ADA.',
       );
     }
@@ -219,7 +219,7 @@ export async function getSwapOrdersHandler({
   if (submission_tx_hash !== undefined) {
     const normalized = normalizeTxHash(submission_tx_hash);
     if (normalized === null) {
-      return errorResult("Invalid submission transaction hash. It should be 64 hex characters.");
+      return invalidInputResult("Invalid submission transaction hash. It should be 64 hex characters.");
     }
     txHash = normalized;
   }

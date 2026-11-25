@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetTokenChart, getTokenChartHandler } from "./get_token_chart.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { TokenChartResponse, ChartPeriod } from "../types/api/schemas.js";
 import { CryptoCurrency, FiatCurrency } from "../types/currency.js";
 
@@ -39,6 +39,7 @@ describe("get_token_chart tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Token unit identifier is required." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       // Should not call the API
@@ -51,6 +52,7 @@ describe("get_token_chart tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Token unit identifier is required." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getTokenChartSpy).not.toHaveBeenCalled();

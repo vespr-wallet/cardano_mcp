@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import { normalizeTxHash } from "../utils/validation.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 
@@ -43,14 +43,14 @@ export async function getTransactionStatusHandler({ tx_hashes }: { tx_hashes: st
   for (const txHash of tx_hashes) {
     const normalized = normalizeTxHash(txHash);
     if (normalized === null) {
-      return errorResult(`Invalid transaction hash "${txHash}". It should be 64 hex characters.`);
+      return invalidInputResult(`Invalid transaction hash "${txHash}". It should be 64 hex characters.`);
     }
     if (!hashes.includes(normalized)) {
       hashes.push(normalized);
     }
   }
   if (hashes.length === 0 || hashes.length > MAX_TX_HASHES) {
-    return errorResult(`Provide between 1 and ${MAX_TX_HASHES} transaction hashes.`);
+    return invalidInputResult(`Provide between 1 and ${MAX_TX_HASHES} transaction hashes.`);
   }
 
   try {
