@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import { lovelaceToAda } from "../utils/cardano.js";
 import { formatWithCommas, roundAmount } from "../utils/formatting.js";
 import { normalizeAssetUnit } from "../utils/validation.js";
@@ -89,16 +89,16 @@ export async function getSwapQuoteHandler({
   const tokenInUnit = normalizeAssetUnit(token_in);
   const tokenOutUnit = normalizeAssetUnit(token_out);
   if (tokenInUnit === null || tokenOutUnit === null) {
-    return errorResult(
+    return invalidInputResult(
       'Invalid token unit. Use the policy ID followed by the hex asset name, or "ADA" / "lovelace" for ADA.',
     );
   }
   if (tokenInUnit === tokenOutUnit) {
-    return errorResult("token_in and token_out must be different tokens.");
+    return invalidInputResult("token_in and token_out must be different tokens.");
   }
   const amountIn = amount.trim();
   if (!AMOUNT_REGEX.test(amountIn) || Number(amountIn) <= 0) {
-    return errorResult('Invalid amount. Use a positive number in display units, e.g. "100" or "0.5".');
+    return invalidInputResult('Invalid amount. Use a positive number in display units, e.g. "100" or "0.5".');
   }
 
   try {

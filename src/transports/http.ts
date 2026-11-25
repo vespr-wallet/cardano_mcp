@@ -3,6 +3,7 @@ import { z, ZodObject, ZodRawShape } from "zod";
 import { logger } from "../utils/logger.js";
 import { apiKeyContext } from "../utils/apiKeyContext.js";
 import { getHeader } from "../utils/headers.js";
+import { INVALID_INPUT } from "../types/errors.js";
 
 /**
  * Tool definition for HTTP transport. `handler` receives the arguments parsed by `inputSchema`,
@@ -23,6 +24,8 @@ export interface HttpToolResult {
   content: Array<{ type: string; text: string }>;
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
+  /** Set by `invalidInputResult` when the tool rejected its input; the route answers 422 instead of 502. */
+  [INVALID_INPUT]?: true;
 }
 
 /**
@@ -245,9 +248,10 @@ export function registerHttpRoutes(server: FastifyInstance): void {
       });
 
       if (result.isError) {
-        return reply.status(502).send({
+        const invalidInput = result[INVALID_INPUT] === true;
+        return reply.status(invalidInput ? 422 : 502).send({
           error: {
-            code: "TOOL_ERROR",
+            code: invalidInput ? "INVALID_INPUT" : "TOOL_ERROR",
             message: result.content.map((c) => c.text).join("\n"),
           },
         });

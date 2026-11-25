@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerGetWalletBalance, getWalletBalanceHandler } from "./get_wallet_balance.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { WalletDetailedResponse, AdaSpotPriceResponse } from "../types/api/schemas.js";
 import { FiatCurrency } from "../types/currency.js";
 
@@ -46,6 +46,7 @@ describe("get_wallet_balance tool", () => {
           },
         ],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       // Should not call the API
@@ -64,6 +65,7 @@ describe("get_wallet_balance tool", () => {
           },
         ],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getDetailedWalletSpy).not.toHaveBeenCalled();
@@ -85,6 +87,7 @@ describe("get_wallet_balance tool", () => {
           },
         ],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(getDetailedWalletSpy).not.toHaveBeenCalled();

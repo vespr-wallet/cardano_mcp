@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach, afterEach } from "@jest/globals
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerResolveAdaHandle, resolveAdaHandleHandler } from "./resolve_ada_handle.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, INVALID_INPUT } from "../types/errors.js";
 import type { AdaHandleOwnerResponse } from "../types/api/schemas.js";
 
 describe("resolve_ada_handle tool", () => {
@@ -38,6 +38,7 @@ describe("resolve_ada_handle tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Handle cannot be empty." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(resolveAdaHandleSpy).not.toHaveBeenCalled();
@@ -49,6 +50,7 @@ describe("resolve_ada_handle tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Handle cannot be empty." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(resolveAdaHandleSpy).not.toHaveBeenCalled();
@@ -60,6 +62,7 @@ describe("resolve_ada_handle tool", () => {
       expect(result).toEqual({
         content: [{ type: "text", text: "Error: Handle cannot be empty." }],
         isError: true,
+        [INVALID_INPUT]: true,
       });
 
       expect(resolveAdaHandleSpy).not.toHaveBeenCalled();

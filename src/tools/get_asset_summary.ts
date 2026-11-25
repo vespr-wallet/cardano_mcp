@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 import type { ImageData } from "../types/api/schemas.js";
 
@@ -136,32 +136,18 @@ export async function getAssetSummaryHandler({ units }: { units: string[] }): Pr
 }> {
   // Validate input - empty array
   if (!units || units.length === 0) {
-    return {
-      content: [{ type: "text" as const, text: "Error: Units array cannot be empty." }],
-      isError: true,
-    };
+    return invalidInputResult("Units array cannot be empty.");
   }
 
   // Validate input - max limit
   if (units.length > MAX_ASSETS_LIMIT) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Error: Maximum ${MAX_ASSETS_LIMIT} assets allowed per request. Received ${units.length}.`,
-        },
-      ],
-      isError: true,
-    };
+    return invalidInputResult(`Maximum ${MAX_ASSETS_LIMIT} assets allowed per request. Received ${units.length}.`);
   }
 
   // Validate input - no empty strings
   const trimmedUnits = units.map((u) => u.trim()).filter((u) => u !== "");
   if (trimmedUnits.length === 0) {
-    return {
-      content: [{ type: "text" as const, text: "Error: All provided units are empty or whitespace." }],
-      isError: true,
-    };
+    return invalidInputResult("All provided units are empty or whitespace.");
   }
 
   try {

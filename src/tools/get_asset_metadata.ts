@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import VesprApiRepository from "../repository/VesprApiRepository.js";
 
 // Output schema
@@ -62,10 +62,7 @@ export async function getAssetMetadataHandler({ unit }: { unit: string }): Promi
 }> {
   // Validate input
   if (!unit || unit.trim() === "") {
-    return {
-      content: [{ type: "text" as const, text: "Error: Asset unit cannot be empty." }],
-      isError: true,
-    };
+    return invalidInputResult("Asset unit cannot be empty.");
   }
 
   try {

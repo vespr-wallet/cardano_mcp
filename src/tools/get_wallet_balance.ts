@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { VesprApiError } from "../types/errors.js";
+import { VesprApiError, invalidInputResult } from "../types/errors.js";
 import { lovelaceToAda, formatTokenAmount } from "../utils/cardano.js";
 import { formatWithCommas } from "../utils/formatting.js";
 import { isValidCardanoAddress } from "../utils/validation.js";
@@ -40,15 +40,7 @@ export async function getWalletBalanceHandler({
 }> {
   // Validate address format before making API call
   if (!isValidCardanoAddress(address)) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: "Error: Invalid Cardano address. Address should be a valid bech32 Shelley Era Wallet address.",
-        },
-      ],
-      isError: true,
-    };
+    return invalidInputResult("Invalid Cardano address. Address should be a valid bech32 Shelley Era Wallet address.");
   }
 
   try {
